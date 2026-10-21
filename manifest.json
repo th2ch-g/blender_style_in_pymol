@@ -1,0 +1,511 @@
+{
+  "pymol": "3.1.0",
+  "width": 1200,
+  "height": 900,
+  "cases": [
+    {
+      "case": "cartoon",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "cartoon-gpu.png",
+        "ray": "cartoon-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 119812,
+          "sha256": "d7d4e252f4d4f2a25d3ec9dddedc3ff1d37394c58887f819a3d55582f35bef87",
+          "seconds": 0.48771666400000413
+        },
+        "ray": {
+          "visible_pixels": 120006,
+          "sha256": "55670dfcaade049f5d53c09d05d52592c0cfe99097c504bfc97b1a2bc7278b97",
+          "seconds": 1.4914454760000027
+        }
+      },
+      "preparation_seconds": 0.0028094560000013757
+    },
+    {
+      "case": "ribbon",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "ribbon-gpu.png",
+        "ray": "ribbon-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 222522,
+          "sha256": "f0cbad45134ad754b69bbfffb01dee64578c98d34cde4173d9a7e58975536694",
+          "seconds": 0.48911121599999774
+        },
+        "ray": {
+          "visible_pixels": 222670,
+          "sha256": "0f902b2d4fd2d10f5b70529ab5550e798c23a2d759043f44487140cac571fc13",
+          "seconds": 0.911616630999994
+        }
+      },
+      "preparation_seconds": 0.002556116000000941
+    },
+    {
+      "case": "spheres",
+      "source": "PyMOL tryptophan fragment",
+      "images": {
+        "gpu": "spheres-gpu.png",
+        "ray": "spheres-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 151379,
+          "sha256": "aff17840c325e86512f1dedf0e8fdbc3b11f0083b1aff9cc19c691a227b34921",
+          "seconds": 0.37510741300000205
+        },
+        "ray": {
+          "visible_pixels": 151511,
+          "sha256": "a3e33dc7394f1be1efbf51590a5610c7e3c045a97f065620df43d24d10b3b5eb",
+          "seconds": 0.27107719299999644
+        }
+      },
+      "preparation_seconds": 0.0020000510000031113
+    },
+    {
+      "case": "ball-and-stick",
+      "source": "PyMOL tryptophan fragment",
+      "images": {
+        "gpu": "ball-and-stick-gpu.png",
+        "ray": "ball-and-stick-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 53117,
+          "sha256": "f462c7fd5ef1ecf5a89192fa9f7e3fad65ffdc790ae893187dc5703756df6b91",
+          "seconds": 0.4110298419999978
+        },
+        "ray": {
+          "visible_pixels": 53273,
+          "sha256": "fc95aba8b5ace45b7474307b74f74a9502f936ad21d741fad7c3c5f4d9be6c8c",
+          "seconds": 0.3100465340000085
+        }
+      },
+      "preparation_seconds": 0.0012962220000005686
+    },
+    {
+      "case": "sticks",
+      "source": "PyMOL tryptophan fragment",
+      "images": {
+        "gpu": "sticks-gpu.png",
+        "ray": "sticks-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 26798,
+          "sha256": "023b8f63dea93e6de44171a05bcf5ff09df042882165252cb0a8e97501c408b9",
+          "seconds": 0.3416876329999923
+        },
+        "ray": {
+          "visible_pixels": 26905,
+          "sha256": "53db1132ce5c85a91fcec2af51264ff50b6195f652e42297536ecb685fd8438d",
+          "seconds": 0.2994848400000052
+        }
+      },
+      "preparation_seconds": 0.0012876560000023574
+    },
+    {
+      "case": "surface",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "surface-gpu.png",
+        "ray": "surface-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 360582,
+          "sha256": "b7f79c3afa097f9b79664f1b8f80e735a85cc1c89fccb4e5ad7b8a5278653759",
+          "seconds": 0.5308101060000041
+        },
+        "ray": {
+          "visible_pixels": 360655,
+          "sha256": "46fe191fdaa6bc0d747b78e9463d94b60032d770fcfd1f09253aefbfd97c6173",
+          "seconds": 4.768710413999997
+        }
+      },
+      "preparation_seconds": 0.0028864920000017946
+    },
+    {
+      "case": "cartoon-rounded",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "cartoon-rounded-gpu.png",
+        "ray": "cartoon-rounded-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 98438,
+          "sha256": "ed59b457ce017d395df1a32c4d1955a0194672c6f2113e340ae66ab3f8ee51eb",
+          "seconds": 0.33272472900000594
+        },
+        "ray": {
+          "visible_pixels": 98627,
+          "sha256": "f8aa6b43ef127b696ddc3d6f35f955f4e7dfc90944fe27e2fd19978375210897",
+          "seconds": 1.168274057000005
+        }
+      },
+      "preparation_seconds": 0.0025084809999924573
+    },
+    {
+      "case": "cartoon-cylinders",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "cartoon-cylinders-gpu.png",
+        "ray": "cartoon-cylinders-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 123222,
+          "sha256": "722cb60e121d26933c978986693bab720c97849789fa223f47b604c00bd157d6",
+          "seconds": 0.32831024400000786
+        },
+        "ray": {
+          "visible_pixels": 123387,
+          "sha256": "a917b9cc91b4f7f95c043054f6e3757f9197a1815f6395f77db2d4b3cd1d86ef",
+          "seconds": 0.6395698540000012
+        }
+      },
+      "preparation_seconds": 0.0025745140000026367
+    },
+    {
+      "case": "preset-1",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "preset-1-gpu.png",
+        "ray": "preset-1-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 200354,
+          "sha256": "a802b51c4b823bd954b3b1b9d54c1c04f3e720d4d9614bc1970a4c0803d1ef0f",
+          "seconds": 0.39928116300001193
+        },
+        "ray": {
+          "visible_pixels": 200517,
+          "sha256": "6ef01cfd57af1decef108ec501c0141cd603432c64babe0c3c525ce2e0bf1083",
+          "seconds": 0.7609594860000044
+        }
+      },
+      "preparation_seconds": 0.0024564940000004754
+    },
+    {
+      "case": "preset-2",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "preset-2-gpu.png",
+        "ray": "preset-2-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 136927,
+          "sha256": "6e212815e00427c0acd184dc402f5e519aabcee66db7500c125fc7167be16ffe",
+          "seconds": 0.42789566099999377
+        },
+        "ray": {
+          "visible_pixels": 137239,
+          "sha256": "63564d8e4e8b7ca3ea0b79e447ef0b69b6b283788751390674089c21738b9349",
+          "seconds": 0.8116688859999925
+        }
+      },
+      "preparation_seconds": 0.002576146999999196
+    },
+    {
+      "case": "preset-3",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "preset-3-gpu.png",
+        "ray": "preset-3-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 360582,
+          "sha256": "67b01e5b5473d65211f1bcec18b6e8a6344e6e2f72790d5f3290cd4c230218fc",
+          "seconds": 0.5217080490000114
+        },
+        "ray": {
+          "visible_pixels": 360655,
+          "sha256": "a77ed4db4eba3a16d7d6bb36f9b3d9d4735cab95b78dc6cc12b751d780cbb2f9",
+          "seconds": 4.768091647000006
+        }
+      },
+      "preparation_seconds": 0.002866138999991108
+    },
+    {
+      "case": "preset-4",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "preset-4-gpu.png",
+        "ray": "preset-4-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 74848,
+          "sha256": "7e004f40af06170d8f87ee058de8aa77111e945d59d343936231f239b136411f",
+          "seconds": 0.3105440509999937
+        },
+        "ray": {
+          "visible_pixels": 75066,
+          "sha256": "d54bc49babfd247dc952c4c257e37512f3ba2b06907640571bc16554435bf831",
+          "seconds": 0.6986267860000055
+        }
+      },
+      "preparation_seconds": 0.0029112189999978
+    },
+    {
+      "case": "oxdna-ribbon",
+      "source": "Synthetic oxDNA duplex (36 nucleotides)",
+      "images": {
+        "gpu": "oxdna-ribbon-gpu.png",
+        "ray": "oxdna-ribbon-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 128742,
+          "sha256": "cc9e63a89bb9231b38487d99037b585a7dd3bf6841b5e757b7bc63c7b710f443",
+          "seconds": 0.42898304600001325
+        },
+        "ray": {
+          "visible_pixels": 129456,
+          "sha256": "3bf45924334feff31947425de1a26d6dd3d9760825ee0110b086b54dc625cb85",
+          "seconds": 0.45493653899998776
+        }
+      },
+      "preparation_seconds": 0.002921708999991779
+    },
+    {
+      "case": "density-surface",
+      "source": "Synthetic signed Gaussian field",
+      "images": {
+        "gpu": "density-surface-gpu.png",
+        "ray": "density-surface-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 61552,
+          "sha256": "2f459021f49aced451ceff1952ef2d8c316bfac1dc156b62bf30b0325df9b734",
+          "seconds": 0.284244005000005
+        },
+        "ray": {
+          "visible_pixels": 61592,
+          "sha256": "69ee7f770210ceb0a11f4247ffdd4c90f0f99e8ca6d08efbec521e42039d427b",
+          "seconds": 0.18841204299999958
+        }
+      },
+      "preparation_seconds": 0.0012243179999984477
+    },
+    {
+      "case": "density-wire",
+      "source": "Synthetic signed Gaussian field",
+      "images": {
+        "gpu": "density-wire-gpu.png",
+        "ray": "density-wire-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 18974,
+          "sha256": "5b69b43434989e5d01c3485c08013093a953443589d2cc831fe508016d7bc8b8",
+          "seconds": 0.3488472960000024
+        },
+        "ray": {
+          "visible_pixels": 47308,
+          "sha256": "f50449d9452a30a0c6ca3e0ed655145e984656411f4cedb56d12506a69663575",
+          "seconds": 0.40270081399998503
+        }
+      },
+      "preparation_seconds": 0.0010188239999990856
+    },
+    {
+      "case": "density-iso-surface",
+      "source": "Synthetic signed Gaussian field",
+      "images": {
+        "gpu": "density-iso-surface-gpu.png",
+        "ray": "density-iso-surface-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 123104,
+          "sha256": "90e7de75f79e8cbb61c81cc3952155ad47f67552897f8ee2cce16b50e05249ab",
+          "seconds": 0.31553431899999396
+        },
+        "ray": {
+          "visible_pixels": 123212,
+          "sha256": "1d223418c600f4aa0d237b0d078ffba509fa278c977dc62d6d6edb46b12c666f",
+          "seconds": 0.26335595200001194
+        }
+      },
+      "preparation_seconds": 0.0014905359999772827
+    },
+    {
+      "case": "studio",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "studio-gpu.png",
+        "ray": "studio-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 119812,
+          "sha256": "d7d4e252f4d4f2a25d3ec9dddedc3ff1d37394c58887f819a3d55582f35bef87",
+          "seconds": 0.3397888619999776
+        },
+        "ray": {
+          "visible_pixels": 120006,
+          "sha256": "0fb0c1e05feb56592f64424c27f09815b7c7617c7dbd74a2fab31424ca4187be",
+          "seconds": 0.6969356319999918
+        }
+      },
+      "preparation_seconds": 0.0024977789999809374
+    },
+    {
+      "case": "ambient-occlusion",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "ambient-occlusion-gpu.png",
+        "ray": "ambient-occlusion-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 360582,
+          "sha256": "38edaeb33382c3b72b14c6ef7d142de6328a376a1e2b8417e0af5e906dc793af",
+          "seconds": 0.4618219429999897
+        },
+        "ray": {
+          "visible_pixels": 360663,
+          "sha256": "da1b8be6872cdfd78c9e86cdc9c999ba6dded0d996be997c9c397ef6b3775ff2",
+          "seconds": 4.724242023000016
+        }
+      },
+      "preparation_seconds": 0.0026779049999845483
+    },
+    {
+      "case": "matte",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "matte-gpu.png",
+        "ray": "matte-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 119823,
+          "sha256": "1edd533ac4fb02c811e5491c9336536b7e4ead360c32a1616f12a5fc24118463",
+          "seconds": 0.34230234899999346
+        },
+        "ray": {
+          "visible_pixels": 120006,
+          "sha256": "1208dbc302aff67d037e014248dd852138269b93c6a7a14f140d640dc87138bf",
+          "seconds": 0.7046614900000066
+        }
+      },
+      "preparation_seconds": 0.002473493999985976
+    },
+    {
+      "case": "glossy",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "glossy-gpu.png",
+        "ray": "glossy-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 119812,
+          "sha256": "a28321e422dcbfae38c2aebf126dd3762c3f07d6d52b9535130a6443d0ba3bee",
+          "seconds": 0.34005668300000025
+        },
+        "ray": {
+          "visible_pixels": 119995,
+          "sha256": "73309862ecad6995e8ee3679b102b9be48130ea525e8744d4beca780227e3447",
+          "seconds": 0.7542391280000231
+        }
+      },
+      "preparation_seconds": 0.0024758889999816347
+    },
+    {
+      "case": "clay",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "clay-gpu.png",
+        "ray": "clay-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 360582,
+          "sha256": "9b53dfb16d3ebce0aade71bf072b71af9e00ce6b1db9fcfcae359d42648c9b82",
+          "seconds": 0.55015358899999
+        },
+        "ray": {
+          "visible_pixels": 360655,
+          "sha256": "29680654a250c5be5deb0ef126a4ff41924705dd99855523dcff464d5ad81e8e",
+          "seconds": 4.771651688999981
+        }
+      },
+      "preparation_seconds": 0.002574452999994037
+    },
+    {
+      "case": "flat",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "flat-gpu.png",
+        "ray": "flat-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 119527,
+          "sha256": "286cdf584449f6f963367dc443632aba5fa629a1a5974b49314324bfbd0b70bb",
+          "seconds": 0.30547256599999173
+        },
+        "ray": {
+          "visible_pixels": 119978,
+          "sha256": "dd1e914b599bf8cd109fb57ad3faa478fdb018fee44bca9d7dce52c89115ded2",
+          "seconds": 0.6539963990000217
+        }
+      },
+      "preparation_seconds": 0.002455921000006356
+    },
+    {
+      "case": "outline",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "outline-gpu.png",
+        "ray": "outline-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 119527,
+          "sha256": "286cdf584449f6f963367dc443632aba5fa629a1a5974b49314324bfbd0b70bb",
+          "seconds": 0.30342708300000254
+        },
+        "ray": {
+          "visible_pixels": 124332,
+          "sha256": "44fd5b1a432c8041ec9e408ccc102197fb6312ceefea65ae3e9dc38ab48481c7",
+          "seconds": 1.3078096020000203
+        }
+      },
+      "preparation_seconds": 0.0028740729999867654
+    },
+    {
+      "case": "transparent",
+      "source": "Crambin (PDB 1CRN)",
+      "images": {
+        "gpu": "transparent-gpu.png",
+        "ray": "transparent-ray.png"
+      },
+      "stats": {
+        "gpu": {
+          "visible_pixels": 360265,
+          "sha256": "63fcc19324fafee55d3b1ca8a423e4c6cf1b68655e9f454a09729976fa03bcd7",
+          "seconds": 0.4743622849999838
+        },
+        "ray": {
+          "visible_pixels": 360447,
+          "sha256": "65834511cb371c7513d087e57feafb536cb43cc4ca46c0641df89d03503f6895",
+          "seconds": 23.79613592000004
+        }
+      },
+      "preparation_seconds": 0.0027223499999990963
+    }
+  ]
+}
