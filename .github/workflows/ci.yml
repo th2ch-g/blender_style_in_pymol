@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.75.0
+          manifest-path: pyproject.toml
+          locked: true
+      - run: pixi run check
+      - run: pixi run test
+      - run: pixi run uv build
+      - run: pixi run benchmark
+      - uses: actions/upload-artifact@v7
+        with:
+          name: validation-${{ matrix.os }}
+          path: |
+            dist/
+            .cache/benchmark.json
+          include-hidden-files: true
+
+  gallery:
+    name: GPU and ray gallery
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.75.0
+          manifest-path: pyproject.toml
+          locked: true
+      - name: Install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa
+      - name: Render actual PyMOL views
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: xvfb-run -a pixi run gallery --fetch
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pymol-gallery
+          path: .cache/gallery/
+          include-hidden-files: true
+          compression-level: 0
+      - name: Check out publication workspace
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          path: .cache/publication
+          persist-credentials: true
+      - name: Publish generated gallery branch
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: bash scripts/publish_gallery.sh .cache/gallery .cache/publication

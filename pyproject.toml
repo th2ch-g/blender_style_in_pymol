@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blender-style-in-pymol"
+version = "0.1.0"
+description = "Molecular Nodes-inspired molecular representations and soft studio lighting for PyMOL"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8", "ruff>=0.9", "Pillow>=10", "psutil>=6", "numpy>=1.24", "PyOpenGL>=3.1.7"]
+
+[project.urls]
+Repository = "https://github.com/th2ch-g/blender_style_in_pymol"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[tool.pixi.dependencies]
+python = "3.10.*"
+pymol-open-source = "==3.1.0"
+uv = ">=0.6"
+
+[tool.pixi.pypi-dependencies]
+blender-style-in-pymol = { path = ".", editable = true, extras = ["test"] }
+
+[tool.pixi.tasks]
+pymol = "pymol -d 'python from blender_style_in_pymol import __init_plugin__; __init_plugin__()'"
+test = "uv run --no-project --python $CONDA_PREFIX/bin/python python -m pytest -q"
+check = "ruff check src tests scripts"
+format = "ruff format src tests scripts"
+gallery = "uv run --no-project --python $CONDA_PREFIX/bin/python python scripts/render_gallery.py --gui"
+benchmark = "uv run --no-project --python $CONDA_PREFIX/bin/python python scripts/benchmark.py"
