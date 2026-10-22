@@ -58,7 +58,25 @@ jobs:
           manifest-path: pyproject.toml
           locked: true
       - name: Install virtual display
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa blender
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa libxi6 libxrender1 libxxf86vm1 libxfixes3 libxkbcommon0
+      - name: Cache reference Blender runtime
+        id: blender
+        uses: actions/cache@v6.1.0
+        with:
+          path: .cache/blender-4.5.2-linux-x64
+          key: blender-4.5.2-linux-x64-bba53619
+      - name: Install reference Blender runtime
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p .cache
+          cd .cache
+          curl --fail --location --retry 3 https://download.blender.org/release/Blender4.5/blender-4.5.2-linux-x64.tar.xz --output blender.tar.xz
+          echo 'bba5361929491ccd69374b93c547f087f09c9eaac5d8cc96da3210485c13d44f  blender.tar.xz' | sha256sum --check
+          tar -xf blender.tar.xz
+          rm blender.tar.xz
+      - name: Use reference Blender runtime
+        run: echo "$PWD/.cache/blender-4.5.2-linux-x64" >> "$GITHUB_PATH"
       - name: Render actual PyMOL views
         shell: bash
         env:

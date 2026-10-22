@@ -16,6 +16,10 @@ Blender runs in a separate background process with factory startup settings and
 automatic script loading disabled. It does not load a user `.blend` file or
 change preferences. Molecular Nodes and third-party Blender add-ons are not
 required. The regular PyMOL renderer and viewport still work without Blender.
+The official Blender distribution includes its required NumPy module. A Linux
+distribution package may need NumPy installed for Blender's own Python; NumPy
+in the separate PyMOL environment does not satisfy that requirement. CI uses
+the official Blender 4.5.2 runtime with a verified SHA-256 checksum.
 
 ## Commands
 
