@@ -1,6 +1,6 @@
 """Molecular Nodes-inspired visualization without importing or starting PyMOL."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def blender_load_oxdna(
@@ -37,6 +37,7 @@ def blender_style(
     height=900,
     quiet=0,
     _self=None,
+    backend="auto",
 ):
     """
     DESCRIPTION
@@ -62,6 +63,7 @@ def blender_style(
         color: auto, keep, element, chain, secondary-structure, rainbow,
             a PyMOL color name, or #rrggbb.
         quality: auto, low, medium, high. Auto scales with atom/state count.
+        backend: auto, mesh, or native. Auto prefers meshes for small static views.
         name: managed view name; reuse replaces that view.
         material: studio, ambient-occlusion, matte, glossy, clay, flat,
             outline, transparent. Overrides the style's material.
@@ -74,11 +76,12 @@ def blender_style(
 
     NOTES
         Coordinates, bonds, colors and attributes of source atoms are preserved.
-        Reset restores source representations and owned lighting. Copies support
-        native picking, state playback, sessions and standard ray export.
+        Reset restores source representations and owned lighting. Native views
+        support atom picking; mesh views support sessions and standard ray export.
         Use refresh after editing source coordinates or attributes.
-        Outline edges require ray export. Surface AO is supported interactively;
-        other representations use soft fill lights. This is not a Cycles renderer.
+        Mesh materials use approximate GGX lighting and geometric occlusion.
+        Standard ray, cmd.ray and png ray=1 refresh camera-dependent shading.
+        This is not a Cycles renderer.
     """
     from .presets import (
         COLOR_THEMES,
@@ -108,7 +111,9 @@ def blender_style(
     if _self is None:
         from pymol import cmd as _self
     from .controller import manager_for
+    from .ray import install
 
+    install(_self)
     manager = manager_for(_self)
     if operation in ("reset", "refresh"):
         return getattr(manager, operation)(str(name))
@@ -140,13 +145,14 @@ def blender_style(
         state=state,
         memory_mb=memory_mb,
         params=params,
+        backend=backend,
     )
     entry = manager.apply(options)
     if not int(quiet):
         print(
             f"blender_style: {options.name}, {options.representation}/{options.material}, "
             f"{entry['atoms']} atoms, {entry['states']} states, {entry['quality']} quality; "
-            f"prepared in {entry['seconds']:.3f} s"
+            f"{entry.get('backend', 'native')} rendering, prepared in {entry['seconds']:.3f} s"
         )
     return entry
 
@@ -155,7 +161,9 @@ def __init_plugin__(app=None, _self=None):
     if _self is None:
         from pymol import cmd as _self
     from .presets import MATERIALS, OPERATIONS, REPRESENTATIONS
+    from .ray import install
 
+    install(_self)
     _self.extend("blender_style", blender_style)
     _self.extend("blender_load_oxdna", blender_load_oxdna)
     if hasattr(_self, "auto_arg"):

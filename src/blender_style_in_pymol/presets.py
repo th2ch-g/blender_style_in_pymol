@@ -81,10 +81,16 @@ PARAMETERS = {
     "sphere_scale": (0.01, 4.0),
     "bond_radius": (0.01, 3.0),
     "ribbon_radius": (0.05, 5.0),
+    "nucleic_radius": (0.05, 5.0),
     "cartoon_width": (0.1, 8.0),
     "cartoon_thickness": (0.05, 3.0),
     "loop_radius": (0.05, 3.0),
     "surface_scale": (0.5, 3.0),
+    "surface_relaxation": (0, 30),
+    "surface_separate_chains": (0, 1),
+    "surface_color_ca": (0, 1),
+    "color_blur": (0, 10),
+    "color_interpolate": (0, 1),
     "probe_radius": (0.0, 5.0),
     "threshold": (-1e6, 1e6),
     "wire_radius": (0.005, 2.0),
@@ -108,6 +114,7 @@ class Options:
     state: int = 0
     memory_mb: float = 512.0
     params: dict = field(default_factory=dict)
+    backend: str = "auto"
 
 
 def resolve_quality(quality: str, atoms: int, states: int) -> str:

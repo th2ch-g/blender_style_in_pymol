@@ -106,6 +106,10 @@ def main():
     parser.add_argument("--frames", type=int, default=60)
     parser.add_argument("--gui", action="store_true")
     parser.add_argument("--representation", default="cartoon")
+    parser.add_argument("--backend", choices=("auto", "native", "mesh"), default="auto")
+    parser.add_argument(
+        "--quality", choices=("auto", "low", "medium", "high"), default="auto"
+    )
     parser.add_argument("--output", type=Path, default=Path(".cache/benchmark.json"))
     args = parser.parse_args()
     if min(args.residues, args.states, args.frames) < 1:
@@ -134,7 +138,13 @@ def main():
         )
         baseline_rss = process.memory_info().rss
         start = perf_counter()
-        entry = blender_style(args.representation, _self=cmd, quiet=1)
+        entry = blender_style(
+            args.representation,
+            backend=args.backend,
+            quality=args.quality,
+            _self=cmd,
+            quiet=1,
+        )
         apply_seconds = perf_counter() - start
         preparation_rss = process.memory_info().rss
         rotation = timing_frames(viewer, args.frames)
@@ -146,6 +156,8 @@ def main():
             blender_style(
                 "matte" if i % 2 else "studio",
                 representation=args.representation,
+                backend=args.backend,
+                quality=args.quality,
                 _self=cmd,
                 quiet=1,
             )
@@ -169,6 +181,7 @@ def main():
             "states": args.states,
             "representation": args.representation,
             "quality": entry["quality"],
+            "backend": entry["backend"],
             "apply_seconds": apply_seconds,
             "material_update_median_ms": median(updates) * 1000,
             "coordinate_mib": entry["coordinate_bytes"] / 1024**2,

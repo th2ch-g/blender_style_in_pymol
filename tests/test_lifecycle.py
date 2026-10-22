@@ -148,7 +148,9 @@ def test_new_objects_are_included_in_reapplication(cmd):
     cmd.fragment("ala", "second")
     updated = style(cmd)
     assert updated["atoms"] > initial["atoms"]
-    assert len(updated["objects"]) == 2
+    assert (
+        sum(cmd.get_type(obj) == "object:molecule" for obj in updated["objects"]) == 2
+    )
 
 
 def test_empty_gui_export_has_clear_error(cmd, tmp_path):
@@ -172,8 +174,8 @@ def test_material_updates_reuse_coordinates(cmd):
     ],
 )
 def test_quality_update_keeps_cartoon_shape(cmd, representation, setting):
-    initial = style(cmd, representation, quality="low")
-    updated = style(cmd, representation, quality="high")
+    initial = style(cmd, representation, quality="low", backend="native")
+    updated = style(cmd, representation, quality="high", backend="native")
     assert initial["objects"] == updated["objects"]
     assert cmd.get_setting_int(setting, updated["objects"][0]) == 1
 

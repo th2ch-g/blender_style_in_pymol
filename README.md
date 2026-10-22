@@ -4,7 +4,8 @@
 
 Standalone `blender_style` command and Qt plugin for PyMOL. It provides
 Molecular Nodes-inspired molecular representations, density contours, oxDNA
-ribbons and soft studio materials using PyMOL's interactive and ray renderers.
+ribbons and soft studio materials using smooth meshes, an isolated OpenGL
+shader and PyMOL's ray renderer.
 Blender and Molecular Nodes are not runtime dependencies.
 
 ## Install
@@ -23,8 +24,8 @@ uv pip install --python <pymol-python> "git+https://github.com/th2ch-g/blender_s
 ```
 
 Replace `<pymol-python>` with the Python interpreter used by PyMOL. Python
-3.10+ is required. The package adds no runtime dependencies beyond the host
-PyMOL installation; PyMOL itself is supplied by conda/pixi, not this package.
+3.10+ is required. NumPy, SciPy, scikit-image, PyOpenGL and Pillow are installed
+with the package. PyMOL itself is supplied by conda/pixi, not this package.
 The dialog and interactive PNG export require a Qt/OpenGL session.
 Headless PyMOL supports ray export.
 
@@ -64,14 +65,19 @@ blender_style cartoon
 blender_style ribbon, color=chain
 blender_style glossy, representation=ball-and-stick, selection=organic
 blender_style transparent, representation=surface, transparency=0.5
-blender_style ray, filename=figure.png, width=2400, height=1800
+ray 2400, 1800
+png figure.png
 blender_style reset, name=all
 ```
 
 Use `name` to keep multiple views and `lighting=keep` to preserve the current
 scene lighting. Named views support refresh, reset and ordinary `.pse` sessions.
 Source molecular coordinates, colors, bonds and atom attributes remain intact.
-Loaded multi-state structures play through native PyMOL state updates.
+`backend=auto` uses smooth meshes for supported static views that fit the
+allocation estimate, and native PyMOL for trajectories and larger selections.
+Use `backend=mesh` to request meshes explicitly or `backend=native` for native
+atom picking and lower preparation cost. Standard `ray`, `cmd.ray()` and
+`png ..., ray=1` refresh mesh shading for the current camera and state.
 
 ## Representation coverage
 
@@ -112,22 +118,27 @@ input requirements, picking and trajectory behavior.
 
 ## Fidelity and performance
 
-Geometry, radii and palettes were compared with actual Molecular Nodes 4.5.9
-renders. Across six shared-input examples, silhouette intersection-over-union
-ranged from 84.5% for cartoon to 99.9% for spheres. These are example-specific
-measurements, not a guarantee for arbitrary structures. The
+Geometry and materials were compared with actual Molecular Nodes 4.5.9
+renders across proteins, DNA and a molecular fragment. Example silhouette
+intersection-over-union is 92.2–94.3% for protein cartoons, 97.7% for a DNA
+cartoon, 96.7–97.9% for surfaces and 99.5% for a fragment's ball-and-stick view.
+Eight materials were checked with shared colors and a matched camera. These
+are calibration examples, not a guarantee for arbitrary structures. The
 [fidelity report](docs/fidelity.md) describes the reference setup and differences.
 
-PyMOL lighting approximates the soft appearance. Surface occlusion is
-supported; general geometric ambient occlusion, subsurface scattering,
-refraction and Blender's Cycles/EEVEE shaders are not. Outlines require ray
-output. Cartoon frames, molecular surfaces and nucleic bases differ from
-Molecular Nodes geometry.
+The mesh backend uses relaxed chain-separated surfaces, oriented cartoon
+profiles, rectangular nucleic bases, geometric occlusion and linear-light GGX
+shading. It approximates the reference's roughness, soft area lights and
+Fresnel outlines in both the viewport and ray output. It does not execute
+Cycles/EEVEE or provide refraction, subsurface scattering or path-traced shadows.
+Mixed scenes containing native representations retain their scene lighting,
+which can change the mesh material's ray appearance.
 
-Atomic and protein styles reuse native PyMOL representations. Automatic
-quality and deferred multi-state geometry keep interactive costs bounded;
-material-only changes reuse native molecular copies. Allocation estimates
-are checked before preparation. See [benchmarks and memory behavior](docs/performance.md).
+Meshes are built once and held in indexed GPU buffers with a bounded cache.
+Material changes reuse geometry. Native trajectory playback avoids building
+Python meshes per frame; explicit mesh trajectories store all selected states.
+Allocation estimates are checked before preparation. See
+[benchmarks and memory behavior](docs/performance.md).
 
 ## Development
 

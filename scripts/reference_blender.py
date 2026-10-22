@@ -21,7 +21,7 @@ def main():
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--style", default="cartoon")
-    parser.add_argument("--material", default="MN Default")
+    parser.add_argument("--material", default="studio")
     parser.add_argument("--samples", type=int, default=64)
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
     addon = args.addon.resolve()
@@ -48,7 +48,11 @@ def main():
     array = reader.array
     original_array = array[0] if array.coord.ndim == 3 else array
     lookup = {
-        (str(atom.chain_id), str(atom.res_id), str(atom.atom_name)): i
+        (
+            str(atom.chain_id),
+            str(atom.res_id) + str(atom.ins_code),
+            str(atom.atom_name),
+        ): i
         for i, atom in enumerate(original_array)
     }
     remap = [
@@ -72,7 +76,13 @@ def main():
         raise ValueError("Reference atom counts do not match")
     keys = {(atom["chain"], atom["resi"], atom["name"]): atom for atom in atoms}
     ordered = [
-        keys[(str(atom.chain_id), str(atom.res_id), str(atom.atom_name))]
+        keys[
+            (
+                str(atom.chain_id),
+                str(atom.res_id) + str(atom.ins_code),
+                str(atom.atom_name),
+            )
+        ]
         for atom in atom_array
     ]
     molecule.store_named_attribute(
@@ -97,7 +107,10 @@ def main():
     style = style_class()
     if hasattr(style, "quality"):
         style.quality = 3
-    molecule.add_style(style, color=None, material=args.material)
+    material = reference_material(
+        bpy, args.material, data.get("transparency", 0), addon
+    )
+    molecule.add_style(style, color=None, material=material)
 
     view = np.asarray(data["view"])
     rotation = view[:9].reshape(3, 3).T
@@ -168,6 +181,52 @@ def main():
     (args.output / f"reference-{args.style}.json").write_text(
         json.dumps(result, indent=2)
     )
+
+
+def reference_material(bpy, name, transparency, addon):
+    assets = {
+        "studio": "MN Default",
+        "ambient-occlusion": "MN Ambient Occlusion",
+        "outline": "MN Flat Outline",
+    }
+    if name in assets:
+        return assets[name]
+    material = bpy.data.materials.new("Reference " + name)
+    material.use_nodes = True
+    nodes, links = material.node_tree.nodes, material.node_tree.links
+    nodes.clear()
+    output = nodes.new("ShaderNodeOutputMaterial")
+    if "MN Color Input" not in bpy.data.node_groups:
+        with bpy.data.libraries.load(
+            str(addon / "assets" / "node_data_file.blend"), link=False
+        ) as (available, requested):
+            requested.node_groups = ["MN Color Input"]
+    attribute = nodes.new("ShaderNodeGroup")
+    attribute.node_tree = bpy.data.node_groups["MN Color Input"]
+    if name == "flat":
+        surface = nodes.new("ShaderNodeEmission")
+        links.new(attribute.outputs["Color"], surface.inputs["Color"])
+    else:
+        surface = nodes.new("ShaderNodeBsdfPrincipled")
+        surface.inputs["Roughness"].default_value = {
+            "matte": 0.85,
+            "clay": 0.9,
+            "glossy": 0.18,
+            "transparent": 0.22,
+        }[name]
+        surface.inputs["IOR"].default_value = 1.45
+        if name in ("matte", "clay"):
+            surface.inputs["Specular IOR Level"].default_value = 0
+        links.new(attribute.outputs["Color"], surface.inputs["Base Color"])
+        if transparency:
+            transparent = nodes.new("ShaderNodeBsdfTransparent")
+            mix = nodes.new("ShaderNodeMixShader")
+            mix.inputs[0].default_value = transparency
+            links.new(surface.outputs[0], mix.inputs[1])
+            links.new(transparent.outputs[0], mix.inputs[2])
+            surface = mix
+    links.new(surface.outputs[0], output.inputs["Surface"])
+    return material
 
 
 if __name__ == "__main__":

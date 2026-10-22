@@ -39,6 +39,7 @@ def show_dialog(cmd):
     color = combo("Color", COLOR_THEMES)
     color.setEditable(True)
     quality = combo("Quality", ("auto", "low", "medium", "high"))
+    rendering = combo("Rendering", ("Automatic", "Smooth meshes", "Native PyMOL"))
     states = combo("States", ("All loaded states", "Current state"))
     transparency = QtWidgets.QDoubleSpinBox()
     transparency.setRange(0, 1)
@@ -49,7 +50,7 @@ def show_dialog(cmd):
     )
     keep = QtWidgets.QCheckBox("Keep existing scene lighting")
     layout.addWidget(keep)
-    status = QtWidgets.QLabel("Native PyMOL geometry with soft studio lighting.")
+    status = QtWidgets.QLabel("Smooth molecular shapes and soft studio materials.")
     status.setWordWrap(True)
     layout.addWidget(status)
     buttons = QtWidgets.QHBoxLayout()
@@ -60,7 +61,8 @@ def show_dialog(cmd):
             result = action()
             if isinstance(result, dict):
                 status.setText(
-                    f"{result['atoms']:,} atoms · {result['states']} states · {result['seconds']:.3f} s"
+                    f"{result['atoms']:,} atoms · {result['states']} states · "
+                    f"{result.get('backend', 'native')} · {result['seconds']:.3f} s"
                 )
             else:
                 status.setText("Done")
@@ -74,6 +76,7 @@ def show_dialog(cmd):
             representation=representation.currentText(),
             color=color.currentText(),
             quality=quality.currentText(),
+            backend=("auto", "mesh", "native")[rendering.currentIndex()],
             name=name.text(),
             transparency=transparency.value(),
             lighting="keep" if keep.isChecked() else "auto",

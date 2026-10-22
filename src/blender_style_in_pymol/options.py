@@ -30,7 +30,19 @@ def read_params(value):
         raise ValueError("Unknown geometry parameters: " + ", ".join(sorted(unknown)))
     return {
         key: (
-            integer if key in ("contours", "only_contours", "bond_split") else number
+            integer
+            if key
+            in (
+                "contours",
+                "only_contours",
+                "bond_split",
+                "surface_relaxation",
+                "surface_separate_chains",
+                "surface_color_ca",
+                "color_blur",
+                "color_interpolate",
+            )
+            else number
         )(val, key, *PARAMETERS[key])
         for key, val in value.items()
     }
@@ -66,6 +78,9 @@ def parse(cmd, **values):
     quality = str(values["quality"]).lower()
     if quality not in ("auto", "low", "medium", "high"):
         raise ValueError("quality must be auto, low, medium, or high")
+    backend = str(values.get("backend", "auto")).lower()
+    if backend not in ("auto", "native", "mesh"):
+        raise ValueError("backend must be auto, native, or mesh")
     lighting = canonical(values["lighting"])
     if lighting not in ("auto", "keep", *MATERIALS):
         raise ValueError("lighting must be auto, keep, or a material name")
@@ -90,4 +105,5 @@ def parse(cmd, **values):
         state=state,
         memory_mb=number(values["memory_mb"], "memory_mb", 1, 65536),
         params=read_params(values["params"]),
+        backend=backend,
     )

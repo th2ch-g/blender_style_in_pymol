@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "blender-style-in-pymol"
-version = "0.1.0"
+version = "0.2.0"
 description = "Molecular Nodes-inspired molecular representations and soft studio lighting for PyMOL"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE", "NOTICE"]
-dependencies = []
+dependencies = ["numpy>=1.24", "scipy>=1.10", "scikit-image>=0.21", "PyOpenGL>=3.1.7", "Pillow>=10"]
 
 [project.optional-dependencies]
 test = ["pytest>=8", "ruff>=0.9", "Pillow>=10", "psutil>=6", "numpy>=1.24", "PyOpenGL>=3.1.7"]

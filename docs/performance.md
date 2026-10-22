@@ -1,85 +1,91 @@
 # Performance and memory
 
-Atomic and protein styles use native PyMOL molecular representations. They
-do not build Python triangle meshes or run callbacks on every movie frame.
-Molecular coordinates are copied once per named view. Reapplying a native
-style with only a material change reuses those copies. oxDNA stores compact
-CGO primitives for each selected state; map styles use native contour objects
-without copying the input voxel field.
+Automatic rendering balances preparation cost and fidelity. Supported static
+views use smooth meshes if their allocation estimate fits below 80% of the
+requested budget. Trajectories and larger selections use native PyMOL by default.
+Use `backend=mesh` to request explicit mesh preparation, or `backend=native` for
+native picking and lower preparation cost.
+
+Meshes are generated once, then drawn through indexed buffers. The OpenGL
+cache is limited to 128 MiB per context and evicts older buffers; no geometry
+is rebuilt while rotating an opaque static view. Transparent faces are sorted
+for each changed view direction. Explicit mesh trajectories retain every
+selected state's mesh in CPU memory and upload/evict its GPU buffers as needed.
+Material changes reuse mesh arrays but update callbacks and ray proxies.
+
+Native trajectories use deferred PyMOL state geometry. oxDNA stores compact
+CGO primitives per state; density contours use native map data without an extra
+voxel copy. These representations retain their separate allocation estimates.
 
 ## Quality and allocation policy
 
-`quality=auto` chooses high quality for static selections up to 20,000 atoms,
-medium for trajectories or larger selections, and low above 100,000 atoms or
-two million atom-states. Explicit low/medium/high overrides the policy.
-Multi-state views set global `defer_builds_mode=3` so native molecular display
-geometry is rebuilt for the displayed state and previous-state geometry can
-be discarded. The prior setting is restored on reset.
+`quality=auto` chooses high for static selections up to 20,000 atoms, medium for
+trajectories or larger selections, and low above 100,000 atoms or two million
+atom-states. This is separate from the backend choice: a large high-quality
+selection may still select native rendering. Explicit low/medium/high overrides
+quality. Multi-state views set and later restore global `defer_builds_mode=3`.
 
-`memory_mb=512` checks a planning estimate before preparing geometry. This
-includes coordinates, molecular metadata, representation-dependent geometry,
-existing managed views and temporary replacement copies. oxDNA estimates
-include every stored state's CGO; density estimates scale with voxel count
-and signed contour count. Large exports have a separate image-buffer estimate.
-Rejected requests leave the previous view intact.
+`memory_mb=512` checks a conservative estimate before preparing geometry. It
+includes molecular copies, indexed arrays, ray display lists, all explicit mesh
+states, existing views and temporary replacement work. Surface voxel dimensions
+are checked before grid allocation; queries and occlusion evaluation are chunked.
+Ray refinement is reduced to fit its temporary allocation estimate. Rejected
+preparation leaves the previous view intact.
 
-The estimate is **not a process RSS cap**. Qt, native allocation caches,
-driver buffers, the original structures and images add memory outside that
-estimate. GPU/driver allocation is not measured separately. Use a smaller
-selection, `state=current`, lower quality, a coarser map or trajectory stride
-to reduce work. Increase the budget explicitly when that is appropriate.
+This is **not a process RSS cap**. Qt, native allocation caches, the original
+structures, driver resources and images add memory outside the estimate. The
+GPU cache limit does not include PyMOL's own GL resources. Use smaller selections,
+`state=current`, lower quality or the native backend to reduce work. The
+`blender_style png/ray` helpers separately check image dimensions and buffers;
+standard PyMOL `ray` retains its normal resolution arguments.
 
-## Measured example
+## Measured examples
 
-The GUI benchmark uses a synthetic 8,000-atom protein with 20 states, rendered
-in a 780 × 610 viewport on an Apple M4 with PyMOL 3.1.0 and OpenGL 2.1 Metal.
-The motion is generated for validation; it is not an MD trajectory. Both the
-native and styled paths traverse all states before their RSS is recorded.
-The styled cartoon uses automatic medium quality.
+Measured with PyMOL 3.1.0 on Apple M4/OpenGL 2.1 Metal, using a 780 × 610 viewport
+and 60 synchronized redraws per series. Inputs are synthetic proteins; the
+20-state motion is generated for validation and is not an MD trajectory.
 
-| Measurement | Result |
-| --- | ---: |
-| Prepare named view | 49.2 ms |
-| Material update, median of 10 | 4.93 ms |
-| Native rotation, median / p95 | 1.21 / 2.09 ms |
-| Styled rotation, median / p95 | 0.87 / 2.00 ms |
-| Native state playback | 46.8 frames/s |
-| Styled state playback | 44.9 frames/s |
-| Styled state update, median / p95 | 22.01 / 23.79 ms |
-| Copied coordinates | 1.83 MiB |
-| Plugin allocation estimate | 45.04 MiB |
-| Process RSS after native playback | 417.42 MiB |
-| Process RSS after styling and playback | 515.42 MiB |
-| RSS after 10 material updates | 515.42 MiB |
-| RSS after another playback pass | 515.45 MiB |
-| RSS after image validation | 554.89 MiB |
+| Workload | Preparation | Material update median | Rotation median / p95 | Styled playback |
+| --- | ---: | ---: | ---: | ---: |
+| 8,000 atoms × 20 states, native/medium | 43.5 ms | 4.79 ms | 0.84 / 1.64 ms | 46.1 frames/s |
+| 800 atoms × 1 state, cartoon mesh/high | 627.6 ms | 26.26 ms | 0.50 / 1.04 ms | Static |
+| 400 atoms × 1 state, surface mesh/high | 742.0 ms | 26.52 ms | 0.63 / 1.08 ms | Static |
 
-Timings cover 60 programmatic redraws per series and include `glFinish`.
-Rotation is redraw throughput, not a claim that the display presents hundreds
-of frames per second. Playback includes native geometry rebuilding. Results
-vary by driver, structure, viewport and quality; this is one measured example.
-The script also exports states 1, 2 and 20 and checks that they are nonempty
-and differ, so a fast blank-frame path cannot pass validation.
+The trajectory's native baseline was 47.0 frames/s, versus 46.1 with styling.
+Its median/p95 state update was 21.56/22.98 ms. Rotation timings are programmatic
+redraw throughput including `glFinish`, not a claim about display refresh rate.
+The surface run's baseline is a native cartoon, so it is not a like-for-like
+surface speed comparison. These workloads do not predict all structures/drivers.
 
-Reset removes managed objects and restores source representations. It does
-not force the Python/native/driver allocators to return pages to the OS; RSS
-remained at 554.89 MiB after reset in this run. The second playback and repeated
-material updates showed stable RSS, but this short run is not a long-duration
-leak test.
+| Workload | Planning estimate | RSS before styling | RSS after drawing | RSS after 10 material changes | RSS after another drawing pass |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 8,000 atoms × 20 states, native/medium | 45.0 MiB | 433.9 MiB | 523.8 MiB | 523.8 MiB | 524.4 MiB |
+| 800 atoms × 1 state, cartoon mesh/high | 114.7 MiB | 182.0 MiB | 266.2 MiB | 299.8 MiB | 299.8 MiB |
+| 400 atoms × 1 state, surface mesh/high | 76.4 MiB | 173.5 MiB | 270.9 MiB | 300.8 MiB | 306.1 MiB |
+
+Mesh preparation and the first material changes grow native/Python allocation
+caches. Reset removes objects and restores source representations but does not
+force allocators or the driver to return pages to the OS. After image validation
+and reset, these runs retained 576.2, 372.1 and 374.2 MiB respectively. This short
+measurement is not a long-duration leak test or a hard upper bound. The script
+exports real GPU frames and checks nonempty, changing trajectory images.
 
 ## Reproduce
 
 ```sh
 pixi run benchmark
 pixi run uv run --no-project --python .pixi/envs/default/bin/python python \
-    scripts/benchmark.py --gui --output .cache/benchmark-gui.json
+    scripts/benchmark.py --gui --output .cache/benchmark-trajectory.json
+pixi run uv run --no-project --python .pixi/envs/default/bin/python python \
+    scripts/benchmark.py --gui --residues 200 --states 1 --backend mesh \
+    --output .cache/benchmark-mesh-cartoon.json
+pixi run uv run --no-project --python .pixi/envs/default/bin/python python \
+    scripts/benchmark.py --gui --residues 100 --states 1 --backend mesh \
+    --representation surface --output .cache/benchmark-mesh-surface.json
 ```
 
-The headless command measures preparation, material changes and RSS. It does
-not report rotation or playback throughput. The GUI command requires an
-available Qt/OpenGL display and adds synchronized redraws and frame images.
-Use `--residues`, `--states`, `--frames`, `--representation` and `--output`
-to change the workload. Density and oxDNA require their own inputs; the
-synthetic protein benchmark is intended for the molecular representations.
-CI publishes headless reports with the build artifacts and separately renders
-the actual GPU/ray gallery under Xvfb and Mesa.
+Headless runs measure preparation, updates and RSS. GUI runs require Qt/OpenGL
+and add synchronized redraws and image validation. `--quality`, `--backend`,
+`--residues`, `--states`, `--frames` and `--representation` control the workload.
+CI publishes headless reports and separately validates shaders, session restore,
+transparent images and standard ray commands under Xvfb/Mesa.

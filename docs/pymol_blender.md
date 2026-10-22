@@ -1,7 +1,7 @@
 # Blender style command guide
 
-`blender_style` is an independent Python plugin for PyMOL 3.1. It uses native
-molecular objects, shaders and ray primitives. Blender and Molecular Nodes are
+`blender_style` is an independent Python plugin for PyMOL 3.1. It uses smooth indexed meshes, an isolated OpenGL shader and native
+molecular/ray primitives. Blender and Molecular Nodes are
 needed only for the optional reference comparison, not for normal use.
 
 ## Registration
@@ -39,13 +39,13 @@ these defaults. Underscores and hyphens are interchangeable; `ballstick`,
 | Representation | Geometry |
 | --- | --- |
 | `cartoon` | Spiral rectangular helices, sheet arrows and smooth backbone curves |
-| `cartoon-rounded` | Rounded native helix and sheet profiles |
+| `cartoon-rounded` | Rounded helix and sheet profiles |
 | `cartoon-cylinders` | Native cylindrical helices, sheet arrows and loops |
 | `ribbon` | Thick circular backbone tube, matching the Molecular Nodes ribbon family |
 | `spheres` | Van der Waals radii scaled by 0.8 |
 | `ball-and-stick` | Spheres scaled by 0.3 and bonds with a 0.3 Å radius |
 | `sticks` | Bonds with a 0.2 Å radius |
-| `surface` | Native solvent-excluded surface with scaled radii and surface occlusion |
+| `surface` | Chain-separated volume meshes with relaxation and interpolated colors |
 | `preset-1` | Polymer tubes plus non-polymer balls and sticks |
 | `preset-2` | Polymer cartoons, nearby peptide side chains and non-polymer balls and sticks |
 | `preset-3` | Protein surface plus spheres for other atoms |
@@ -55,37 +55,62 @@ these defaults. Underscores and hyphens are interchangeable; `ballstick`,
 | `density-iso-surface` | Positive and negative contour surfaces, with optional wire contours |
 | `oxdna-ribbon` | Oriented base ellipsoids, stems and a directional backbone |
 
-Cartoon/ribbon views also show non-solvent ligands as sticks and isolated
-non-polymer atoms as spheres. A molecule with fewer than two backbone anchors
-falls back to sticks. Nucleic acids use native PyMOL backbones, rings and rungs;
-these differ from Molecular Nodes rectangular base slabs.
+Cartoon and ribbon meshes use polymer backbones and oriented rectangular
+nucleic bases. Use presets 1–2 to include ligands and isolated non-polymer atoms.
+A selection without a usable polymer backbone falls back to native sticks.
+
+## Rendering backend
+
+`backend=auto` prefers meshes for supported single-state selections when their
+planning estimate is below 80% of `memory_mb`. Trajectories, larger selections,
+multiple-bond layouts and unsupported mesh styles use native PyMOL. The command
+and dialog report the chosen backend.
+
+`backend=mesh` explicitly requests meshes for cartoon, rounded cartoon, ribbon,
+spheres, sticks, ball-and-stick, surface and presets 1–3. It checks the allocation
+estimate and fails if the request exceeds the budget. Cylindrical cartoons,
+preset 4, density and oxDNA retain their native paths. `backend=native` always
+uses the original PyMOL representations and supports atom picking.
+
+```text
+blender_style cartoon, backend=mesh, state=current
+blender_style surface, backend=mesh, quality=medium
+blender_style cartoon, backend=native, state=0
+```
 
 ## Materials and lighting
 
-| Material | Appearance |
+| Material | Mesh appearance |
 | --- | --- |
-| `studio` | Broad, low-strength highlights with soft fill lighting |
-| `ambient-occlusion` | Stronger native surface occlusion and subdued directional lighting |
-| `matte` | Diffuse finish without specular highlights |
-| `glossy` | Stronger, sharper highlights |
-| `clay` | Matte finish and a warm clay color with `color=auto` |
+| `studio` | Roughness 0.5, broad highlights and soft fill lighting |
+| `ambient-occlusion` | Color multiplied by approximate geometric visibility |
+| `matte` | Roughness 0.85, no specular contribution |
+| `glossy` | Roughness 0.18, sharper highlights |
+| `clay` | Roughness 0.9 and warm clay color with `color=auto` |
 | `flat` | Unlit color |
-| `outline` | Flat color with ray-traced outlines |
-| `transparent` | Alpha transparency, defaulting to 0.5 |
+| `outline` | Occlusion shading and dark grazing-angle Fresnel edges |
+| `transparent` | Roughness 0.22 and alpha transparency, defaulting to 0.5 |
 
-`transparency` accepts 0 (opaque) through 1 (invisible). These are PyMOL
-material approximations. Surface occlusion works in the viewport and ray
-output. Cartoon and atomic views use soft fill lights without geometric
-ambient occlusion. Outlines appear in ray output; the viewport shows flat
-color. There is no refraction, subsurface scattering, HDR environment lighting,
-or Cycles/EEVEE shader execution.
+`transparency` accepts 0 (opaque) through 1 (invisible). With `lighting=auto`,
+meshes use linear-light diffuse/GGX shading, three approximate area lights and
+area-weighted surface-patch occlusion. GPU output shades each fragment. Ray
+output adaptively refines triangles and bakes the same model at the current
+camera, then uses PyMOL's ray intersections. Transparent GPU faces are sorted
+within each mesh; intersecting objects can still show ordering artifacts.
 
-PyMOL lighting is global. The last applied view with `lighting=auto` controls
-scene lighting, including unrelated visible objects. `lighting=keep` leaves
-lighting unchanged; an explicit material name selects its lighting profile.
-Per-object transparency, surface occlusion and geometry remain independent.
-The background and camera are preserved. Use native `bg_color`, `orient`
-and `zoom` commands to change them.
+`lighting=keep` preserves scene lights and uses native CGO shading with baked
+occlusion. An explicit lighting preset also selects native shading. The native
+backend uses PyMOL scene lights, specular highlights and surface occlusion;
+its outlines require ray output. These paths have a different appearance from
+the dedicated mesh shader. No path executes Cycles/EEVEE, refraction, subsurface
+scattering, HDR environments or path-traced soft shadows.
+
+PyMOL scene lights are global. The last `lighting=auto` view also applies a
+native lighting profile for other visible representations. A scene containing
+only physical meshes temporarily disables native lighting during ray tracing
+to avoid applying lighting twice. Mixed native/mesh scenes retain scene lights,
+so their mesh ray appearance is approximate. Background and camera are preserved.
+Use native `bg_color`, `orient` and `zoom` commands to change them.
 
 ## Colors
 
@@ -184,29 +209,32 @@ blender_style reset, name=ligand
 blender_style reset, name=all
 ```
 
-Each named view is a group of native molecular copies. Selected source atoms
+Each named view groups molecular copies and, when used, mesh/shader objects. Selected source atoms
 are hidden while any managed view uses them. Unselected source atoms keep
 their original representations. Coordinates, atom attributes, bonds and colors
 of the originals are preserved. Overlapping views can be removed independently.
 `reset` restores source representations and removes the managed objects.
 
-Native atom picking works on the molecular copies. After picking an atom,
+Native atom picking works with `backend=native`. Mesh surfaces do not carry
+atom picking IDs; use native views when picking is required. After picking an atom,
 `blender_style select, selection=pk1` puts the corresponding source atom into
 `sele`. The mapping uses atom ranks, so sorting the source does not invalidate
 it. Delete/recreate operations that replace atom identity require a refresh.
 
 Reusing a name replaces its view after successful preparation. Invalid
 parameters, failed preparation and failed lighting updates retain the previous
-view. Material-only updates reuse coordinates and existing molecular objects
-for the atomic, protein and legacy preset styles. Density and oxDNA views
-rebuild their generated geometry.
+view. Material-only updates reuse coordinates and indexed meshes, while updating
+shaders and ray proxies. Mesh quality changes rebuild geometry. Density and
+oxDNA views rebuild their generated geometry.
 Resetting a lighting owner restores the preceding owner's settings; after the
 last owner is removed, the previous scene settings return. Manual lighting
 edits made after applying the style are retained.
 
-The native geometry and restoration metadata are stored in normal `.pse`
-sessions. A saved view can be displayed without the plugin. Reinstall/import
-the plugin to use refresh, reset and source-picking commands after reopening.
+Geometry, mesh arrays, drawing callbacks and restoration metadata are stored
+in normal `.pse` sessions. Mesh sessions require this package and its dependencies
+to be installed when loading. Native sessions remain displayable without the
+plugin. Register the plugin after starting PyMOL to enable standard ray hooks,
+refresh, reset and source-picking commands.
 The metadata is associated with the PyMOL instance, not a process-wide scene.
 
 ## States and memory
@@ -224,8 +252,9 @@ blender_style surface, state=current
 
 Copies do not automatically follow later edits to source coordinates,
 annotations or topology. `refresh` rebuilds a view from its original selection
-expression. `refresh, name=all` rebuilds all views. Previously loaded states
-play without a Python per-frame callback.
+expression. `refresh, name=all` rebuilds all views. Native trajectories use PyMOL state updates. Explicit mesh trajectories
+prepare every state up front; drawing callbacks upload or reuse its indexed
+buffers without recomputing geometry. Transparent faces require per-view sorting.
 
 The active multi-state views use PyMOL's global `defer_builds_mode=3`, as well
 as per-object deferred builds. This is required for state updates and for
@@ -258,17 +287,25 @@ blender_style("cartoon", params={"cartoon_width": 2.2, "loop_radius": 0.3})
 | `sphere_scale` | 0.8; 0.3 for ball-and-stick | 0.01–4 |
 | `bond_radius` | 0.2 Å; 0.3 Å for ball-and-stick | 0.01–3 Å |
 | `ribbon_radius` | 1.6 Å | 0.05–5 Å |
+| `nucleic_radius` | 2.0 Å for cartoon; 1.6 Å for ribbon | 0.05–5 Å |
 | `cartoon_width` | 2.2, matching the reference profile control | 0.1–8 |
 | `cartoon_thickness` | 0.6, matching the reference profile control | 0.05–3 |
 | `loop_radius` | 0.3 Å | 0.05–3 Å |
 | `surface_scale` | 1.5 × reference atomic radii | 0.5–3 |
+| `surface_relaxation` | 10 smoothing iterations | 0–30 |
+| `surface_separate_chains` | 1 | 0 or 1 |
+| `surface_color_ca` | 1; use backbone color anchors | 0 or 1 |
+| `color_blur` | 2 surface color smoothing iterations | 0–10 |
+| `color_interpolate` | 0; interpolate cartoon residue colors when enabled | 0 or 1 |
 | `probe_radius` | 1.0 Å | 0–5 Å |
 | `bond_split` | 0 | 0 or 1; show supplied multiple-bond orders |
 | `threshold` | 0.8 map units | −1,000,000–1,000,000; positive for signed ISO |
 | `wire_radius` | 0.06 Å | 0.005–2 Å |
 | `contours`, `only_contours` | 0 | 0 or 1 |
 
-Width and thickness map to PyMOL profile half-extents; they are not full
+Surface relaxation, chain separation and color interpolation parameters apply
+to the mesh backend. `bond_split=1` selects the native backend.
+Width and thickness map to profile half-extents; they are not full
 cross-section dimensions. The correspondence was checked with rendered
 Molecular Nodes geometry, rather than inferred from the socket labels alone.
 Legacy presets have their own reference defaults: preset 1 uses a 1.4 Å
@@ -286,9 +323,15 @@ ray 2400, 1800
 png native_ray.png
 ```
 
-GPU PNG needs a Qt/OpenGL session. Ray export also works headlessly and
-uses native PyMOL primitives. The entire visible scene is exported.
+Standard `ray`, Python `cmd.ray()` and `png ..., ray=1` automatically prepare
+current-state, camera-dependent mesh colors. The hooks preserve the usual ray
+arguments, including asynchronous rendering, and restore settings afterward.
+The completed standard ray image remains available for `png`. Registration is
+idempotent; with no managed physical meshes these commands retain native behavior.
+
+GPU PNG needs a Qt/OpenGL session. Ray export works headlessly with native
+PyMOL ray primitives. The entire visible scene is exported.
 `unset opaque_background` requests a transparent background.
-Image buffers have a separate estimate checked against `memory_mb`; dimensions
+The `blender_style png/ray` helpers check a separate image-buffer estimate checked against `memory_mb`; dimensions
 are limited to 8192 per axis and 32 million total pixels. A larger budget
 permits larger exports without changing molecular quality.

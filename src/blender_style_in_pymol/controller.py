@@ -62,6 +62,11 @@ class Manager:
     def _delete(self, names):
         existing = set(self.cmd.get_names("all"))
         for name in names:
+            getattr(self.cmd._pymol.session, "blender_style_meshes", {}).pop(name, None)
+            getattr(self.cmd._pymol.session, "blender_style_callbacks", {}).pop(
+                name, None
+            )
+            getattr(self.cmd._pymol, "_blender_drawings", {}).pop(name, None)
             if name in existing:
                 self.cmd.delete(name)
 
@@ -245,16 +250,30 @@ class Manager:
             coordinate_bytes = sum(row[2] * row[3] * 12 for row in rows)
             quality = resolve_quality(options.quality, atoms, states)
             backbone = cmd.count_atoms(
-                f"%{source} and ((polymer.protein and name CA) or (polymer.nucleic and name P))"
+                f"%{source} and ((polymer.protein and name CA) or (polymer.nucleic and name C4'))"
             )
+            use_mesh = geometry.mesh_backend(options, atoms, states, quality, backbone)
             estimate = estimate_bytes(
                 options.representation, quality, atoms, backbone, coordinate_bytes
             )
             if options.representation == "oxdna-ribbon":
                 estimate += atoms * states * 2048
+            if use_mesh:
+                estimate = (
+                    coordinate_bytes
+                    + atoms * 384
+                    + states
+                    * geometry.mesh_estimate(
+                        options.representation, quality, atoms, backbone
+                    )
+                )
             old = self.entries.get(options.name)
             resident = sum(entry["estimated_bytes"] for entry in self.entries.values())
-            if old and not refresh and self._can_update(old, options, source):
+            if (
+                old
+                and not refresh
+                and self._can_update(old, options, source, quality, use_mesh)
+            ):
                 if (
                     old["quality"] != quality
                     and resident + estimate > options.memory_mb * 1024**2
@@ -271,6 +290,7 @@ class Manager:
                 )
             enabled = set(cmd.get_names("objects", enabled_only=1))
             mappings = []
+            prepared_bytes = 0
             for original, selected, count, frame_count in rows:
                 obj = cmd.get_unused_name("_bs_view")
                 created.append(obj)
@@ -284,8 +304,22 @@ class Manager:
                 )
                 cmd.disable(obj)
                 colors.apply(cmd, obj, options)
-                extras = geometry.prepare(cmd, obj, options, quality)
+                extras = geometry.prepare(
+                    cmd,
+                    obj,
+                    options,
+                    quality,
+                    use_mesh,
+                    options.memory_mb * 1024**2 - resident - prepared_bytes,
+                )
                 created.extend(extras)
+                prepared_bytes += count * (384 + frame_count * 12)
+                mesh_cache = getattr(cmd._pymol.session, "blender_style_meshes", {})
+                prepared_bytes += sum(
+                    mesh.nbytes * 2 + len(mesh.faces) * 180
+                    for extra in extras
+                    for mesh in mesh_cache.get(extra, ())
+                )
                 mappings.append(
                     {"object": obj, "source": original, "enabled": original in enabled}
                 )
@@ -305,6 +339,12 @@ class Manager:
                 "atoms": atoms,
                 "states": states,
                 "quality": quality,
+                "backend": "mesh"
+                if any(
+                    obj in getattr(cmd._pymol.session, "blender_style_meshes", {})
+                    for obj in created
+                )
+                else "native",
                 "coordinate_bytes": coordinate_bytes,
                 "estimated_bytes": estimate,
                 "seconds": perf_counter() - started,
@@ -351,10 +391,23 @@ class Manager:
             ):
                 self._delete([source])
 
-    def _can_update(self, entry, options, selection):
+    def _can_update(self, entry, options, selection, quality, use_mesh):
         if entry.get("kind") == "density" or options.representation == "oxdna-ribbon":
             return False
         before = entry["options"]
+        if (entry.get("backend", "native") == "mesh") != use_mesh:
+            return False
+        if use_mesh and (before["lighting"] == "auto") != (options.lighting == "auto"):
+            return False
+        if use_mesh and (
+            entry["quality"] != quality
+            or any(
+                obj not in getattr(self.cmd._pymol.session, "blender_style_meshes", {})
+                for obj in entry["objects"]
+                if self.cmd.get_type(obj) == "object:cgo"
+            )
+        ):
+            return False
         if options.color == "auto" and (options.material == "clay") != (
             before["material"] == "clay"
         ):
@@ -383,6 +436,13 @@ class Manager:
         scene = self._scene_snapshot()
         try:
             for obj in entry["objects"]:
+                meshes = getattr(cmd._pymol.session, "blender_style_meshes", {}).get(
+                    obj
+                )
+                if meshes:
+                    from .mesh import load
+
+                    load(cmd, obj, meshes, options)
                 for key, value in updates.items():
                     cmd.set(key, value, obj, quiet=1)
             self.entries.pop(options.name)
@@ -395,6 +455,19 @@ class Manager:
             self.entries[options.name] = entry
             self._scene(force=True)
         except Exception:
+            for obj in entry["objects"]:
+                meshes = getattr(cmd._pymol.session, "blender_style_meshes", {}).get(
+                    obj
+                )
+                if meshes:
+                    from .mesh import load
+
+                    load(
+                        cmd,
+                        obj,
+                        meshes,
+                        Options(**previous["entries"][options.name]["options"]),
+                    )
             for (obj, key), value in saved.items():
                 cmd.set(key, value, obj, quiet=1)
             self.data.clear()

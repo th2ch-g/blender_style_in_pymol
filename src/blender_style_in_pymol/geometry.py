@@ -1,4 +1,4 @@
-"""Use native PyMOL primitives, with no Python mesh or per-frame cache."""
+"""Build molecular views using native primitives and compact smooth meshes."""
 
 from .presets import geometry_settings, material_settings
 
@@ -35,20 +35,128 @@ VDW_RADII = {
 }
 
 
-def prepare(cmd, obj: str, options, quality: str) -> None:
+def mesh_estimate(representation, quality, atoms, backbone):
+    if representation in ("spheres", "sticks", "ball-and-stick"):
+        sphere_faces = {"low": 120, "medium": 360, "high": 960}[quality]
+        bonds = (
+            0
+            if representation == "spheres"
+            else {"low": 120, "medium": 192, "high": 288}[quality]
+        )
+        return atoms * (sphere_faces + bonds) * 1200
+    if representation in ("surface", "preset-3"):
+        return atoms * {"low": 60_000, "medium": 120_000, "high": 200_000}[quality]
+    return backbone * {"low": 160_000, "medium": 320_000, "high": 600_000}[quality]
+
+
+def mesh_backend(options, atoms, states, quality="high", backbone=0):
+    supported = options.representation in (
+        "surface",
+        "preset-3",
+        "cartoon",
+        "cartoon-rounded",
+        "ribbon",
+        "preset-1",
+        "preset-2",
+        "spheres",
+        "sticks",
+        "ball-and-stick",
+    )
+    if options.backend == "mesh" and (
+        not supported or options.params.get("bond_split", 0)
+    ):
+        raise ValueError(
+            "The requested representation or multiple-bond layout requires backend=native"
+        )
+    if (
+        not supported
+        or options.backend == "native"
+        or options.params.get("bond_split", 0)
+    ):
+        return False
+    if (
+        options.representation
+        in ("cartoon", "cartoon-rounded", "ribbon", "preset-1", "preset-2", "preset-3")
+        and backbone == 0
+    ):
+        return False
+    return options.backend == "mesh" or (
+        states == 1
+        and mesh_estimate(options.representation, quality, atoms, backbone)
+        < options.memory_mb * 1024**2 * 0.8
+    )
+
+
+def prepare(cmd, obj: str, options, quality: str, use_mesh=False, budget=None):
     rep = options.representation
     settings = geometry_settings(rep, quality, options.params)
     settings.update(material_settings(options.material, quality, options.transparency))
     cmd.hide("everything", obj)
     for key, value in settings.items():
         cmd.set(key, value, obj, quiet=1)
-    factor = options.params.get("surface_scale", 1.5) if rep == "surface" else 1
+    factor = (
+        options.params.get("surface_scale", 1.5)
+        if rep == "surface" and not use_mesh
+        else 1
+    )
     cmd.alter(
         obj,
         "vdw = radii.get(elem, vdw) * factor",
         space={"radii": VDW_RADII, "factor": factor},
         quiet=1,
     )
+    if use_mesh:
+        from .mesh import cache, load
+
+        if rep in ("surface", "preset-3"):
+            from .surface import surface as build
+        elif rep in ("spheres", "sticks", "ball-and-stick"):
+            from .atomic import atomic as build
+        else:
+            from .cartoon import cartoon as build
+
+        name = cmd.get_unused_name("_bs_mesh")
+        meshes = []
+        available = options.memory_mb * 1024**2 if budget is None else budget
+        try:
+            for state in range(1, cmd.count_states(obj) + 1):
+                mesh = build(cmd, obj, state, quality, options, available)
+                if mesh is None:
+                    break
+                if mesh.nbytes * 2 + len(mesh.faces) * 1200 > available:
+                    raise ValueError(
+                        "Mesh preparation exceeds memory_mb; use lower quality or backend=native"
+                    )
+                available -= mesh.nbytes * 2 + len(mesh.faces) * 180
+                if available < 0:
+                    raise ValueError(
+                        "Mesh states exceed memory_mb; use state=current or lower quality"
+                    )
+                meshes.append(mesh)
+            if meshes:
+                callback = load(cmd, name, meshes, options)
+                cmd.disable(name)
+                if callback:
+                    cmd.disable(callback)
+                cache(cmd)[name] = meshes
+                if rep == "preset-3":
+                    cmd.show("spheres", f"{obj} and not polymer.protein")
+                elif rep not in ("surface", "spheres", "sticks", "ball-and-stick"):
+                    if rep.startswith("preset-"):
+                        _preset(cmd, obj, options)
+                        cmd.hide("cartoon", f"{obj} and polymer.protein")
+                    cmd.hide("cartoon", f"{obj} and polymer.nucleic")
+                return [name, callback] if callback else [name]
+        except Exception:
+            cmd.delete(name)
+            from .mesh import callback_names
+
+            callback = callback_names(cmd).pop(name, None)
+            if callback:
+                cmd.delete(callback)
+            getattr(cmd._pymol, "_blender_drawings", {}).pop(name, None)
+            cache(cmd).pop(name, None)
+            raise
     if rep.startswith("preset-"):
         _preset(cmd, obj, options)
     elif rep == "oxdna-ribbon":
@@ -60,11 +168,9 @@ def prepare(cmd, obj: str, options, quality: str) -> None:
         if rep == "cartoon":
             cmd.cartoon("rectangle", f"{obj} and ss H")
         cmd.show("cartoon", obj)
-        cmd.show("sticks", f"{obj} and not polymer and not solvent")
     elif rep == "ribbon":
         cmd.cartoon("tube", obj)
         cmd.show("cartoon", obj)
-        cmd.show("sticks", f"{obj} and not polymer and not solvent")
     elif rep == "spheres":
         cmd.show("spheres", obj)
     elif rep == "ball-and-stick":
@@ -78,9 +184,10 @@ def prepare(cmd, obj: str, options, quality: str) -> None:
         )
         if anchors < 2:
             cmd.show("sticks", f"{obj} and not solvent")
-        cmd.show(
-            "spheres", f"{obj} and not polymer and not solvent and not neighbor {obj}"
-        )
+            cmd.show(
+                "spheres",
+                f"{obj} and not polymer and not solvent and not neighbor {obj}",
+            )
     return []
 
 

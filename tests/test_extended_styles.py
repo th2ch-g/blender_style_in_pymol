@@ -101,7 +101,9 @@ def test_preset_compositions(cmd):
     cmd.bond("ligand and name C1", "ligand and name O1")
     for preset in ("preset-1", "preset-2", "preset-3", "preset-4"):
         entry = blender_style(preset, _self=cmd)
-        assert len(entry["objects"]) == 2
+        assert (
+            sum(cmd.get_type(obj) == "object:molecule" for obj in entry["objects"]) == 2
+        )
         ligand = next(
             row["object"] for row in entry["mapping"] if row["source"] == "ligand"
         )
