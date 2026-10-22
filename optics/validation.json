@@ -1,0 +1,224 @@
+{
+  "refraction_rgb_delta": 0.022010403050108932,
+  "subsurface_rgb_delta": 0.019718664240464936,
+  "radius_rgb_delta": 0.0127191409272948,
+  "camera_iou": {
+    "0": 0.9989030904235024,
+    "1": 0.9992771432702039
+  },
+  "renders": {
+    "ior-1": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "flat",
+          "ior": 1.45,
+          "roughness": 0.5,
+          "transmission": 0.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        },
+        {
+          "name": "glass",
+          "ior": 1.0,
+          "roughness": 0.0,
+          "transmission": 1.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        }
+      ],
+      "vertices": 24100,
+      "peak_rss_mb": 518.5390625,
+      "seconds": 2.5238422240000205,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "ior-1.5": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "flat",
+          "ior": 1.45,
+          "roughness": 0.5,
+          "transmission": 0.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        },
+        {
+          "name": "glass",
+          "ior": 1.5,
+          "roughness": 0.0,
+          "transmission": 1.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        }
+      ],
+      "vertices": 24100,
+      "peak_rss_mb": 519.3203125,
+      "seconds": 2.5304958579999948,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "glass-restored": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "flat",
+          "ior": 1.45,
+          "roughness": 0.5,
+          "transmission": 0.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        },
+        {
+          "name": "glass",
+          "ior": 1.5,
+          "roughness": 0.0,
+          "transmission": 1.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        }
+      ],
+      "vertices": 24100,
+      "peak_rss_mb": 514.296875,
+      "seconds": 2.5330957869999793,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "diffuse": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "subsurface",
+          "ior": 1.45,
+          "roughness": 0.45,
+          "transmission": 0.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        }
+      ],
+      "vertices": 482,
+      "peak_rss_mb": 474.89453125,
+      "seconds": 2.678303188999962,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "sss-0.1": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "subsurface",
+          "ior": 1.45,
+          "roughness": 0.45,
+          "transmission": 0.0,
+          "subsurface": 1.0,
+          "subsurface_radius": 0.1
+        }
+      ],
+      "vertices": 482,
+      "peak_rss_mb": 477.171875,
+      "seconds": 3.8288716069999964,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "sss-2.0": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "subsurface",
+          "ior": 1.45,
+          "roughness": 0.45,
+          "transmission": 0.0,
+          "subsurface": 1.0,
+          "subsurface_radius": 2.0
+        }
+      ],
+      "vertices": 482,
+      "peak_rss_mb": 473.234375,
+      "seconds": 3.5823154589999717,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "sss-alpha": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "subsurface",
+          "ior": 1.45,
+          "roughness": 0.45,
+          "transmission": 0.0,
+          "subsurface": 1.0,
+          "subsurface_radius": 2.0
+        }
+      ],
+      "vertices": 482,
+      "peak_rss_mb": 473.390625,
+      "seconds": 3.529269600999953,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "camera-0": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "flat",
+          "ior": 1.45,
+          "roughness": 0.5,
+          "transmission": 0.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        }
+      ],
+      "vertices": 482,
+      "peak_rss_mb": 474.61328125,
+      "seconds": 2.123877013000026,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    },
+    "camera-1": {
+      "blender": "4.5.2 LTS",
+      "engine": "Cycles CPU",
+      "denoising": true,
+      "materials": [
+        {
+          "name": "flat",
+          "ior": 1.45,
+          "roughness": 0.5,
+          "transmission": 0.0,
+          "subsurface": 0.0,
+          "subsurface_radius": 1.0
+        }
+      ],
+      "vertices": 482,
+      "peak_rss_mb": 474.52734375,
+      "seconds": 2.0763605800000278,
+      "width": 400,
+      "height": 300,
+      "samples": 32
+    }
+  }
+}
