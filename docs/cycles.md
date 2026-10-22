@@ -109,6 +109,8 @@ and transmission; separate chain surfaces can overlap.
 
 Each render starts a CPU Cycles process, uses at most eight threads, a
 deterministic seed, denoising, 16 total bounces and 12 transmission bounces.
+Builds without OpenImageDenoise render without denoising; this is recorded in
+the render metadata. Increase `samples` to reduce noise on those builds.
 The process has a 600-second timeout. Temporary geometry, images and logs are
 removed after completion. Allocation estimates cover exported arrays and image
 buffers; Blender's own scene, acceleration structures and allocator overhead

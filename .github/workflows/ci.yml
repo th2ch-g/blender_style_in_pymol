@@ -60,15 +60,32 @@ jobs:
       - name: Install virtual display
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa blender
       - name: Render actual PyMOL views
+        shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
-        run: xvfb-run -a pixi run gallery --fetch
+        run: |
+          mkdir -p .cache
+          xvfb-run -a pixi run gallery --fetch 2>&1 | tee .cache/gallery-render.log
       - name: Validate shader sessions and native ray commands
+        shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
-        run: xvfb-run -a pixi run uv run --no-project --python .pixi/envs/default/bin/python python scripts/validate_gpu.py
+        run: xvfb-run -a pixi run uv run --no-project --python .pixi/envs/default/bin/python python scripts/validate_gpu.py 2>&1 | tee .cache/gpu-validation.log
       - name: Validate Cycles refraction and subsurface scattering
-        run: pixi run uv run --no-project --python .pixi/envs/default/bin/python python scripts/validate_cycles.py --output .cache/gallery/optics --samples 32
+        shell: bash
+        run: pixi run uv run --no-project --python .pixi/envs/default/bin/python python scripts/validate_cycles.py --output .cache/gallery/optics --samples 32 2>&1 | tee .cache/cycles-validation.log
+      - name: Report render diagnostics
+        if: failure()
+        run: |
+          pixi run uv run --no-project --python .pixi/envs/default/bin/python python - <<'PY'
+          from pathlib import Path
+          for name in ("gallery-render", "gpu-validation", "cycles-validation"):
+              path = Path(".cache") / f"{name}.log"
+              if path.is_file():
+                  text = path.read_text(errors="replace")[-12000:]
+                  text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                  print(f"::error title={name}::{text}")
+          PY
       - uses: actions/upload-artifact@v7
         with:
           name: pymol-gallery

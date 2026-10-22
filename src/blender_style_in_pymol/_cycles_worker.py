@@ -81,6 +81,7 @@ def material(bpy, item):
 
 
 def main():
+    import _cycles
     import bpy
     import numpy as np
     from mathutils import Matrix, Vector
@@ -174,7 +175,9 @@ def main():
     scene.cycles.device = "CPU"
     scene.cycles.samples = data["samples"]
     scene.cycles.seed = 0
-    scene.cycles.use_denoising = True
+    scene.cycles.use_denoising = bool(getattr(_cycles, "with_openimagedenoise", False))
+    if scene.cycles.use_denoising:
+        scene.cycles.denoiser = "OPENIMAGEDENOISE"
     scene.cycles.max_bounces = 16
     scene.cycles.transmission_bounces = 12
     scene.cycles.transparent_max_bounces = 16
@@ -192,6 +195,7 @@ def main():
     metadata = {
         "blender": bpy.app.version_string,
         "engine": "Cycles CPU",
+        "denoising": scene.cycles.use_denoising,
         "materials": [
             {"name": item["material"], **item["optical"]} for item in data["objects"]
         ],

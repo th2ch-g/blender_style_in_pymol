@@ -56,7 +56,7 @@ def image(
             if renderer not in ("auto", "pymol", "cycles"):
                 raise ValueError("renderer must be auto, pymol, or cycles")
             if requested(cmd, renderer):
-                render_cycles(cmd, width, height, samples)
+                render_cycles(cmd, width, height, samples, memory_mb=budget)
                 cmd.png(str(path), prior=1, quiet=1)
             else:
                 with scene(cmd, width, height, memory_mb=memory_mb):

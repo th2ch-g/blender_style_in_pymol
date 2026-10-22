@@ -120,3 +120,13 @@ def test_optical_updates_reuse_geometry(cmd):
         second = glass(cmd, params={"ior": 1.7, "subsurface": 0.3})
     assert first["objects"] == second["objects"]
     assert all(cache(cmd)[name][0] is values[0] for name, values in meshes.items())
+
+
+def test_cycles_export_budget_can_override_view_budget(cmd, tmp_path):
+    glass(cmd)
+    cmd.hide("everything", "sample")
+    with pytest.raises(ValueError, match="buffers exceed"):
+        export_scene(cmd, tmp_path, 320, 240, memory_mb=1)
+    assert not list(tmp_path.iterdir())
+    export_scene(cmd, tmp_path, 320, 240, memory_mb=16)
+    assert (tmp_path / "scene.json").is_file()

@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import perf_counter
 
-from .presets import Options, integer, needs_cycles
+from .presets import Options, integer, needs_cycles, number
 
 
 def visible_entries(cmd):
@@ -104,7 +104,9 @@ def dimensions(cmd, width, height):
     return width, height
 
 
-def export_scene(cmd, directory, width, height, samples=None, angle=0, shift=0):
+def export_scene(
+    cmd, directory, width, height, samples=None, angle=0, shift=0, memory_mb=None
+):
     import numpy as np
 
     from .export import _mesh_only
@@ -126,7 +128,17 @@ def export_scene(cmd, directory, width, height, samples=None, angle=0, shift=0):
     enabled = enabled_objects(cmd)
     meshes = []
     estimate = width * height * 96
-    budget = min(entry["options"]["memory_mb"] for entry in entries) * 1024**2
+    budget = (
+        number(
+            min(entry["options"]["memory_mb"] for entry in entries)
+            if memory_mb is None
+            else memory_mb,
+            "memory_mb",
+            1,
+            65536,
+        )
+        * 1024**2
+    )
     for entry in entries:
         options = Options(**entry["options"])
         for obj in entry["objects"]:
@@ -198,13 +210,15 @@ def export_scene(cmd, directory, width, height, samples=None, angle=0, shift=0):
     return data
 
 
-def render(cmd, width=0, height=0, samples=None, angle=0, shift=0):
+def render(cmd, width=0, height=0, samples=None, angle=0, shift=0, *, memory_mb=None):
     blender = executable()
     width, height = dimensions(cmd, width, height)
     started = perf_counter()
     with TemporaryDirectory(prefix="blender-style-cycles-") as temporary:
         directory = Path(temporary)
-        data = export_scene(cmd, directory, width, height, samples, angle, shift)
+        data = export_scene(
+            cmd, directory, width, height, samples, angle, shift, memory_mb
+        )
         worker = Path(__file__).with_name("_cycles_worker.py")
         args = [
             blender,
