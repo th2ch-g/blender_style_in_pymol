@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from ctypes import c_void_p
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from weakref import ref
 
 import numpy as np
@@ -79,11 +79,17 @@ class Pool:
                 location = gl.glGetUniformLocation(self.program, name)
                 (gl.glUniform1i if integer else gl.glUniform1f)(location, value)
 
-            roughness, specular, unlit = parameters(drawing.material)
+            from .presets import optical_parameters
+
+            roughness, specular, unlit = parameters(drawing.material, drawing.params)
             uniform("roughness", roughness)
             uniform("specular", specular)
             uniform("unlit", unlit, True)
             uniform("opacity", 1 - drawing.transparency)
+            uniform(
+                "subsurface",
+                optical_parameters(drawing.material, drawing.params)["subsurface"],
+            )
             gl.glDisable(gl.GL_LIGHTING)
             gl.glDisable(gl.GL_FOG)
             gl.glDisable(gl.GL_CULL_FACE)
@@ -137,6 +143,7 @@ class Drawing:
     mesh: object
     material: str
     transparency: float
+    params: dict = field(default_factory=dict)
     error: str = ""
     draws: int = 0
 
@@ -152,10 +159,11 @@ class Drawing:
         ]
 
     def __getstate__(self):
-        return self.mesh, self.material, self.transparency
+        return self.mesh, self.material, self.transparency, self.params
 
     def __setstate__(self, state):
-        self.mesh, self.material, self.transparency = state
+        self.mesh, self.material, self.transparency = state[:3]
+        self.params = state[3] if len(state) > 3 else {}
         self.error, self.draws = "", 0
         self.__post_init__()
 

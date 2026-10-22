@@ -175,12 +175,14 @@ def main():
             source = specimen(cmd, case, args.structure, args.output)
             representation = (
                 "surface"
-                if case in ("clay", "ambient-occlusion", "transparent")
+                if case
+                in ("clay", "ambient-occlusion", "transparent", "glass", "subsurface")
                 else None
             )
             entry = blender_style(
                 case,
                 representation=representation,
+                color={"glass": "#d6efff", "subsurface": "#efb199"}.get(case, "auto"),
                 quality="high",
                 _self=cmd,
                 quiet=1,
@@ -192,6 +194,7 @@ def main():
                 "images": {},
                 "stats": {},
                 "preparation_seconds": entry["seconds"],
+                "color": entry["options"]["color"],
             }
             viewer.pump()
             for kind in ("gpu", "ray") if args.gui else ("ray",):
@@ -210,6 +213,8 @@ def main():
                     **validate(path, args.width, args.height),
                     "seconds": perf_counter() - start,
                 }
+                if kind == "ray" and case in ("glass", "subsurface"):
+                    row["stats"][kind]["renderer"] = cmd._pymol._blender_last_cycles
             rows.append(row)
             print(f"{case}: {', '.join(row['images'])}", flush=True)
         write_index(args.output, rows)

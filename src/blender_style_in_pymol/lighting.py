@@ -3,23 +3,28 @@
 import numpy as np
 
 from .mesh import linear, srgb, unit
+from .presets import optical_parameters
 
 LIGHT_DIRECTIONS = unit([[-0.45, 0.55, 0.8], [0.5, 0.15, 0.6], [0.1, -0.5, 0.35]])
 LIGHT_POWERS = np.array([0.2655, 0.1922, 0.4768])
 LIGHT_RADII = np.array([0.304, 0.472, 0.404])
 
 
-def parameters(material):
-    roughness = {"glossy": 0.18, "matte": 0.85, "clay": 0.9, "transparent": 0.22}.get(
-        material, 0.5
+def parameters(material, params=None):
+    optical = optical_parameters(material, params)
+    roughness = optical["roughness"]
+    specular = (
+        0
+        if material in ("matte", "clay")
+        else ((optical["ior"] - 1) / (optical["ior"] + 1)) ** 2
     )
-    specular = 0 if material in ("matte", "clay") else 0.03374
     unlit = {"flat": 1, "ambient-occlusion": 2, "outline": 3}.get(material, 0)
     return roughness, specular, unlit
 
 
-def shade(mesh, material, rotation):
-    roughness, specular, unlit = parameters(material)
+def shade(mesh, material, rotation, params=None):
+    roughness, specular, unlit = parameters(material, params)
+    optical = optical_parameters(material, params)
     color = linear(mesh.colors)
     ao = mesh.occlusion[:, None]
     if unlit in (1, 2):
@@ -51,6 +56,9 @@ def shade(mesh, material, rotation):
             np.abs(cosine) < radius,
             (cosine + radius) ** 2 / (4 * radius),
             np.maximum(cosine, 0),
+        )
+        nl = (1 - optical["subsurface"]) * nl + optical["subsurface"] * np.maximum(
+            (cosine + 0.5) / 1.5, 0
         )
         nh = np.maximum(normal @ half, 0)
         vh = max(half[2], 0)
@@ -89,6 +97,7 @@ varying vec4 color;
 uniform float roughness;
 uniform float specular;
 uniform float opacity;
+uniform float subsurface;
 uniform int unlit;
 vec3 linearRGB(vec3 c) {
     return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
@@ -102,6 +111,7 @@ vec3 illuminate(vec3 n, vec3 base, vec3 light, float power, float radius) {
     float nv = max(n.z, 0.001);
     float cosine = dot(n, l);
     float nl = abs(cosine) < radius ? pow(cosine + radius, 2.0) / (4.0 * radius) : max(cosine, 0.0);
+    nl = mix(nl, max((cosine + 0.5) / 1.5, 0.0), subsurface);
     float nh = max(dot(n, h), 0.0);
     float a2 = pow(max(roughness, 0.08), 4.0) + pow(radius * 0.5, 2.0);
     float f = specular > 0.0 ? specular + (1.0 - specular) * pow(1.0 - max(h.z, 0.0), 5.0) : 0.0;

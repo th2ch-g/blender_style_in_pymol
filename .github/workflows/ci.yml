@@ -58,7 +58,7 @@ jobs:
           manifest-path: pyproject.toml
           locked: true
       - name: Install virtual display
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglu1-mesa blender
       - name: Render actual PyMOL views
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -67,6 +67,8 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: xvfb-run -a pixi run uv run --no-project --python .pixi/envs/default/bin/python python scripts/validate_gpu.py
+      - name: Validate Cycles refraction and subsurface scattering
+        run: pixi run uv run --no-project --python .pixi/envs/default/bin/python python scripts/validate_cycles.py --output .cache/gallery/optics --samples 32
       - uses: actions/upload-artifact@v7
         with:
           name: pymol-gallery

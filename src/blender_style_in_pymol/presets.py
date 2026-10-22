@@ -31,6 +31,8 @@ MATERIALS = (
     "flat",
     "outline",
     "transparent",
+    "glass",
+    "subsurface",
 )
 
 OPERATIONS = ("list", "help", "reset", "refresh", "select", "png", "ray", "gui")
@@ -43,6 +45,8 @@ ALIASES = {
     "space-filling": "spheres",
     "tube": "ribbon",
     "ao": "ambient-occlusion",
+    "refraction": "glass",
+    "sss": "subsurface",
     "flat-outline": "outline",
     "ss": "secondary-structure",
     "common": "element",
@@ -77,6 +81,14 @@ def integer(value: Any, name: str, low: int, high: int) -> int:
     return int(result)
 
 
+OPTICAL_PARAMETERS = {
+    "ior",
+    "roughness",
+    "transmission",
+    "subsurface",
+    "subsurface_radius",
+}
+
 PARAMETERS = {
     "sphere_scale": (0.01, 4.0),
     "bond_radius": (0.01, 3.0),
@@ -97,6 +109,11 @@ PARAMETERS = {
     "contours": (0, 1),
     "only_contours": (0, 1),
     "bond_split": (0, 1),
+    "ior": (1.0, 4.0),
+    "roughness": (0.0, 1.0),
+    "transmission": (0.0, 1.0),
+    "subsurface": (0.0, 1.0),
+    "subsurface_radius": (0.001, 100.0),
 }
 
 
@@ -115,6 +132,42 @@ class Options:
     memory_mb: float = 512.0
     params: dict = field(default_factory=dict)
     backend: str = "auto"
+    renderer: str = "auto"
+    samples: int = 64
+
+
+def optical_parameters(material, params=None):
+    params = params or {}
+    return {
+        "ior": params.get("ior", 1.45),
+        "roughness": params.get(
+            "roughness",
+            {
+                "glossy": 0.18,
+                "matte": 0.85,
+                "clay": 0.9,
+                "transparent": 0.22,
+                "glass": 0.08,
+                "subsurface": 0.45,
+            }.get(material, 0.5),
+        ),
+        "transmission": params.get("transmission", float(material == "glass")),
+        "subsurface": params.get("subsurface", float(material == "subsurface")),
+        "subsurface_radius": params.get("subsurface_radius", 1.0),
+    }
+
+
+def needs_cycles(options):
+    optical = optical_parameters(options.material, options.params)
+    return options.renderer == "cycles" or (
+        options.renderer == "auto"
+        and (optical["transmission"] > 0 or optical["subsurface"] > 0)
+    )
+
+
+def preview_transparency(options):
+    transmission = optical_parameters(options.material, options.params)["transmission"]
+    return 1 - (1 - options.transparency) * (1 - 0.7 * transmission)
 
 
 def resolve_quality(quality: str, atoms: int, states: int) -> str:
@@ -242,7 +295,7 @@ def lighting_settings(material: str) -> dict:
         settings.update(ambient=1, direct=0, reflect=0, specular=0, spec_reflect=0)
         if material == "outline":
             settings.update(ray_trace_mode=1)
-    elif material == "transparent":
+    elif material in ("transparent", "glass"):
         settings.update(specular=0.5, spec_reflect=0.45, shininess=55)
     return settings
 

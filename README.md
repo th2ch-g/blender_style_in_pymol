@@ -5,8 +5,10 @@
 Standalone `blender_style` command and Qt plugin for PyMOL. It provides
 Molecular Nodes-inspired molecular representations, density contours, oxDNA
 ribbons and soft studio materials using smooth meshes, an isolated OpenGL
-shader and PyMOL's ray renderer.
-Blender and Molecular Nodes are not runtime dependencies.
+shader and PyMOL's ray renderer. An optional Blender Cycles path adds real
+refraction and random-walk subsurface scattering to standard `ray` commands.
+Ordinary styles work without Blender. Cycles output requires Blender 4.0+;
+Molecular Nodes is not a runtime dependency.
 
 ## Install
 
@@ -43,9 +45,10 @@ alone does not import or start PyMOL or modify a scene.
 
 ## Gallery
 
-All **16 representation choices and 8 materials** are rendered in real PyMOL.
+All **16 representation choices and 10 materials** are rendered through PyMOL.
 The previews below show ray output. The [full gallery](https://github.com/th2ch-g/blender_style_in_pymol/tree/gallery)
-compares every case with interactive GPU output at 1200 × 900.
+compares every case with interactive GPU output at 1200 × 900. `glass` and
+`subsurface` use Cycles for ray output; their viewport images are approximations.
 Protein examples use [crambin, PDB 1CRN](https://www.rcsb.org/structure/1CRN);
 atomic examples use a tryptophan fragment. Density and oxDNA examples are synthetic.
 
@@ -79,6 +82,23 @@ Use `backend=mesh` to request meshes explicitly or `backend=native` for native
 atom picking and lower preparation cost. Standard `ray`, `cmd.ray()` and
 `png ..., ray=1` refresh mesh shading for the current camera and state.
 
+For refraction or subsurface scattering, install Blender and make `blender`
+available on `PATH`, or set `BLENDER_EXECUTABLE` to its executable. Installed
+macOS applications are also discovered through Spotlight.
+
+```text
+blender_style glass, representation=surface
+ray 1200, 900
+png glass.png
+blender_style subsurface, representation=surface, samples=128
+ray 1200, 900
+png subsurface.png
+```
+
+These materials automatically choose mesh geometry and Cycles ray rendering.
+The [Cycles guide](docs/cycles.md) covers optical parameters, supported scenes,
+alpha output and the difference between viewport previews and path tracing.
+
 ## Representation coverage
 
 Every molecular **Style** family in Molecular Nodes has a corresponding
@@ -101,7 +121,7 @@ Blender's node graphs and every individual node socket are not reimplemented.
 | oxDNA Style Ribbon | `oxdna-ribbon` |
 
 Materials are `studio`, `ambient-occlusion`, `matte`, `glossy`, `clay`,
-`flat`, `outline` and `transparent`. Color modes include secondary structure,
+`flat`, `outline`, `transparent`, `glass` and `subsurface`. Color modes include secondary structure,
 elements, chains, rainbow, original colors and custom colors.
 
 ```text
@@ -129,10 +149,11 @@ are calibration examples, not a guarantee for arbitrary structures. The
 The mesh backend uses relaxed chain-separated surfaces, oriented cartoon
 profiles, rectangular nucleic bases, geometric occlusion and linear-light GGX
 shading. It approximates the reference's roughness, soft area lights and
-Fresnel outlines in both the viewport and ray output. It does not execute
-Cycles/EEVEE or provide refraction, subsurface scattering or path-traced shadows.
-Mixed scenes containing native representations retain their scene lighting,
-which can change the mesh material's ray appearance.
+Fresnel outlines in the viewport and native ray output. Cycles export uses
+the same meshes and colors with Principled BSDF transmission, random-walk SSS
+and path-traced area lighting. It supports complete managed mesh scenes;
+visible native representations or labels must be hidden or converted to meshes.
+Native PyMOL ray output retains the existing behavior for mixed scenes.
 
 Meshes are built once and held in indexed GPU buffers with a bounded cache.
 Material changes reuse geometry. Native trajectory playback avoids building
@@ -152,6 +173,7 @@ pixi run benchmark
 Tests exercise real PyMOL lifecycle, source preservation, rollback, picking,
 sessions, trajectories, density maps, oxDNA orientations and ray output.
 CI checks Linux and macOS and renders paired GPU/ray images under Xvfb.
+It also checks actual Cycles refraction, SSS and session round trips.
 
 The command and documentation layout follow
 [chimerax_style_in_pymol](https://github.com/th2ch-g/chimerax_style_in_pymol),

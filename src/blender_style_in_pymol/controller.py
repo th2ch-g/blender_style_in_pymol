@@ -219,6 +219,12 @@ class Manager:
     def apply(self, options: Options, refresh=False):
         self.maintenance()
         if options.representation in DENSITY_REPRESENTATIONS:
+            from .presets import needs_cycles
+
+            if needs_cycles(options):
+                raise ValueError(
+                    "Cycles materials require a molecular mesh representation"
+                )
             from .density import apply
 
             return apply(self, options)
@@ -392,6 +398,8 @@ class Manager:
                 self._delete([source])
 
     def _can_update(self, entry, options, selection, quality, use_mesh):
+        from .presets import OPTICAL_PARAMETERS
+
         if entry.get("kind") == "density" or options.representation == "oxdna-ribbon":
             return False
         before = entry["options"]
@@ -412,9 +420,13 @@ class Manager:
             before["material"] == "clay"
         ):
             return False
-        for key in ("representation", "color", "state", "params"):
+        for key in ("representation", "color", "state"):
             if before[key] != getattr(options, key):
                 return False
+        if {
+            k: v for k, v in before["params"].items() if k not in OPTICAL_PARAMETERS
+        } != {k: v for k, v in options.params.items() if k not in OPTICAL_PARAMETERS}:
+            return False
         old = entry["source_selection"]
         return not self.cmd.count_atoms(
             f"(%{old} and not %{selection}) or (%{selection} and not %{old})"

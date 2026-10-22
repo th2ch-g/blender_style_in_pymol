@@ -27,7 +27,7 @@ def read_params(value):
         raise ValueError("params must be a dictionary or a local JSON object file")
     unknown = set(value) - set(PARAMETERS)
     if unknown:
-        raise ValueError("Unknown geometry parameters: " + ", ".join(sorted(unknown)))
+        raise ValueError("Unknown parameters: " + ", ".join(sorted(unknown)))
     return {
         key: (
             integer
@@ -81,6 +81,9 @@ def parse(cmd, **values):
     backend = str(values.get("backend", "auto")).lower()
     if backend not in ("auto", "native", "mesh"):
         raise ValueError("backend must be auto, native, or mesh")
+    renderer = str(values.get("renderer", "auto")).lower()
+    if renderer not in ("auto", "pymol", "cycles"):
+        raise ValueError("renderer must be auto, pymol, or cycles")
     lighting = canonical(values["lighting"])
     if lighting not in ("auto", "keep", *MATERIALS):
         raise ValueError("lighting must be auto, keep, or a material name")
@@ -92,6 +95,13 @@ def parse(cmd, **values):
     transparency = values["transparency"]
     if transparency is None or transparency == "":
         transparency = 0.5 if material == "transparent" else 0.0
+    params = read_params(values["params"])
+    if material in ("flat", "outline", "ambient-occlusion") and any(
+        params.get(key, 0) > 0 for key in ("transmission", "subsurface")
+    ):
+        raise ValueError(
+            "Transmission and subsurface parameters require a lit material"
+        )
     return Options(
         style=style,
         selection=str(values["selection"]),
@@ -104,6 +114,8 @@ def parse(cmd, **values):
         lighting=lighting,
         state=state,
         memory_mb=number(values["memory_mb"], "memory_mb", 1, 65536),
-        params=read_params(values["params"]),
+        params=params,
         backend=backend,
+        renderer=renderer,
+        samples=integer(values.get("samples", 64), "samples", 1, 4096),
     )

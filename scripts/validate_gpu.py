@@ -58,10 +58,17 @@ def main():
         blender_style("transparent", representation="ball-and-stick", _self=cmd)
         transparent = render("transparent")
         assert transparent[:, :, 3].max() > 200
+        previews = []
+        for material in ("glass", "subsurface"):
+            blender_style(material, representation="ball-and-stick", _self=cmd)
+            previews.append(render(material))
+        assert not np.array_equal(*previews)
         assert cmd.get("bg_rgb") in ("white", "[ 1.000, 1.000, 1.000 ]")
         blender_style("reset", name="all", _self=cmd)
         assert not any(obj in cmd.get_names("all") for obj in entry["objects"])
-        print("GPU shaders, alpha, session restore and standard ray commands passed")
+        print(
+            "GPU shaders, optical previews, alpha, session restore and standard ray commands passed"
+        )
     finally:
         viewer.close()
 

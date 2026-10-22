@@ -27,8 +27,17 @@ def install(cmd):
     ):
         target = command() if _self is None else _self
         asynchronous = int(kwargs.pop("async", async_))
+        from .cycles import requested
+
+        cycles = requested(target, renderer)
+        native_renderer = {"pymol": 0, "auto": -1}.get(str(renderer).lower(), renderer)
 
         def render():
+            if cycles:
+                from .cycles import render as render_cycles
+
+                render_cycles(target, width, height, angle=angle, shift=shift)
+                return 1
             image = None
             with scene(target, width, height, angle):
                 result = original_ray(
@@ -37,13 +46,13 @@ def install(cmd):
                     antialias,
                     angle,
                     shift,
-                    renderer,
+                    native_renderer,
                     quiet,
                     0,
                     _self=target,
                     **kwargs,
                 )
-                if _physical(target) and int(renderer) != 2:
+                if _physical(target) and int(native_renderer) != 2:
                     image = original_png(None, prior=1, quiet=1, _self=target)
             if image:
                 from pathlib import Path
@@ -55,7 +64,7 @@ def install(cmd):
                     target.load_png(str(path), quiet=1)
             return result
 
-        if asynchronous and _physical(target):
+        if asynchronous and (_physical(target) or cycles):
             thread = Thread(target=render, daemon=True, name="blender-style-ray")
             target._pymol._blender_ray_thread = thread
             thread.start()
@@ -67,7 +76,7 @@ def install(cmd):
                 antialias,
                 angle,
                 shift,
-                renderer,
+                native_renderer,
                 quiet,
                 asynchronous,
                 _self=target,
@@ -97,6 +106,16 @@ def install(cmd):
         resolution = float(dpi)
         if resolution < 0:
             resolution = target.get_setting_float("image_dots_per_inch")
+        from .cycles import render as render_cycles
+        from .cycles import requested
+
+        if requested(target):
+            render_cycles(
+                target, _unit2px(width, resolution), _unit2px(height, resolution)
+            )
+            return original_png(
+                filename, dpi=dpi, quiet=quiet, prior=1, format=format, _self=target
+            )
         with scene(target, _unit2px(width, resolution), _unit2px(height, resolution)):
             return original_png(
                 filename, width, height, dpi, ray, quiet, prior, format, _self=target
@@ -110,12 +129,11 @@ def install(cmd):
 
 
 def _physical(cmd):
-    from .controller import SESSION_KEY
+    from .cycles import visible_entries
 
-    entries = getattr(cmd._pymol.session, SESSION_KEY, {}).get("entries", {})
     return any(
         entry.get("backend") == "mesh" and entry["options"]["lighting"] == "auto"
-        for entry in entries.values()
+        for entry in visible_entries(cmd)
     )
 
 
@@ -127,12 +145,13 @@ def scene(cmd, width=0, height=0, angle=0, memory_mb=None):
     import numpy as np
 
     from .controller import manager_for
+    from .cycles import enabled_objects
     from .export import _mesh_only
     from .mesh import display_list, refine
     from .presets import Options
 
     cache = getattr(cmd._pymol.session, "blender_style_meshes", {})
-    enabled = set(cmd.get_names("objects", enabled_only=1))
+    enabled = enabled_objects(cmd)
     entries = list(manager_for(cmd).entries.values())
     budget = (
         memory_mb
@@ -184,7 +203,7 @@ def scene(cmd, width=0, height=0, angle=0, memory_mb=None):
                 detailed = refine(mesh, levels) if levels else mesh
                 replaced.append((obj, state, mesh, options))
                 cmd.load_cgo(
-                    display_list(detailed, options.material, rotation),
+                    display_list(detailed, options.material, rotation, options.params),
                     obj,
                     state=state,
                     zoom=0,
@@ -217,7 +236,9 @@ def scene(cmd, width=0, height=0, angle=0, memory_mb=None):
         try:
             for obj, state, mesh, options in replaced:
                 cmd.load_cgo(
-                    display_list(mesh, options.material, cmd.get_view()[:9]),
+                    display_list(
+                        mesh, options.material, cmd.get_view()[:9], options.params
+                    ),
                     obj,
                     state=state,
                     zoom=0,

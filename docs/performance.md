@@ -89,3 +89,32 @@ and add synchronized redraws and image validation. `--quality`, `--backend`,
 `--residues`, `--states`, `--frames` and `--representation` control the workload.
 CI publishes headless reports and separately validates shaders, session restore,
 transparent images and standard ray commands under Xvfb/Mesa.
+
+## Optional Cycles output
+
+Cycles runs only when rendering an image. The viewport and geometry caches
+remain in PyMOL; optical parameter changes reuse the existing meshes. Each
+image starts a separate Blender process and releases that process after output.
+
+Observed on the same Apple M4 with Blender 4.5.2, CPU rendering, eight threads,
+64 samples and denoising:
+
+| Scene | Image size | End-to-end render time | Blender peak RSS |
+| --- | --- | ---: | ---: |
+| Glass sphere plus 49 colored background spheres, 24,100 vertices | 400 × 300 | 0.85–0.91 s | 456–472 MiB |
+| SSS sphere, 482 vertices, radii 0.1–2 Å | 400 × 300 | 1.30–1.44 s | 413–415 MiB |
+| 1CRN surface, 10,228 vertices, glass | 1200 × 900 | 12.20 s | 1138 MiB |
+| 1CRN surface, 10,228 vertices, SSS | 1200 × 900 | 12.35 s | 1138 MiB |
+
+Times include scene export, Blender startup, rendering and image transfer.
+RSS is the child Blender process peak, excluding the resident PyMOL process.
+The larger images need substantial renderer and denoiser memory beyond the
+array/image planning estimate; `memory_mb` is not an enforced Cycles RSS limit.
+These are short local measurements, not a guarantee on other scenes or hardware.
+The surface measurements use default gray colors; the gallery's newer pale-blue
+glass and warm SSS tints can change sampling cost.
+
+Run `scripts/validate_cycles.py` as described in the [Cycles guide](cycles.md)
+to regenerate optical images, material-input records, timing and peak RSS.
+CI uses 32 samples for these effect checks and publishes their results in
+the gallery's `optics` directory.

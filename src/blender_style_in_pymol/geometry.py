@@ -1,6 +1,6 @@
 """Build molecular views using native primitives and compact smooth meshes."""
 
-from .presets import geometry_settings, material_settings
+from .presets import geometry_settings, material_settings, needs_cycles
 
 # Radii in angstroms for elements commonly present in molecular structures.
 VDW_RADII = {
@@ -62,6 +62,26 @@ def mesh_backend(options, atoms, states, quality="high", backbone=0):
         "sticks",
         "ball-and-stick",
     )
+    if needs_cycles(options):
+        if (
+            not supported
+            or options.backend == "native"
+            or options.params.get("bond_split", 0)
+        ):
+            raise ValueError(
+                "Cycles materials require a supported mesh representation and backend=mesh or auto"
+            )
+        if options.lighting != "auto":
+            raise ValueError("Cycles materials require lighting=auto")
+        if (
+            options.representation
+            not in ("surface", "spheres", "sticks", "ball-and-stick")
+            and not backbone
+        ):
+            raise ValueError(
+                "This Cycles representation requires a polymer backbone; use spheres or surface"
+            )
+        return True
     if options.backend == "mesh" and (
         not supported or options.params.get("bond_split", 0)
     ):
@@ -147,6 +167,10 @@ def prepare(cmd, obj: str, options, quality: str, use_mesh=False, budget=None):
                         cmd.hide("cartoon", f"{obj} and polymer.protein")
                     cmd.hide("cartoon", f"{obj} and polymer.nucleic")
                 return [name, callback] if callback else [name]
+            if needs_cycles(options):
+                raise ValueError(
+                    "No mesh could be generated for this Cycles view; use spheres or surface"
+                )
         except Exception:
             cmd.delete(name)
             from .mesh import callback_names

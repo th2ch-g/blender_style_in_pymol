@@ -81,7 +81,7 @@ Spline transitions, occlusion and multi-object lighting remain approximations.
 
 ### Materials
 
-All eight materials were compared on the same 1CRN cartoon. `studio`,
+The original eight materials were compared on the same 1CRN cartoon. `studio`,
 `ambient-occlusion` and `outline` use the installed MN Default, MN Ambient
 Occlusion and MN Flat Outline assets as references. `matte`, `glossy`, `clay`
 and `transparent` use explicitly configured Principled materials, while `flat`
@@ -161,9 +161,13 @@ GPU transparent faces are sorted per mesh, not globally across intersecting
 objects. View-dependent effects use an orthographic approximation, so strong
 perspective or stereo can differ from Blender.
 
-There is no Cycles/EEVEE execution, refraction, subsurface scattering, arbitrary
-node graphs, HDR lighting, cast soft shadows or global illumination. Blender's
-Squishy and Transparent Outline shaders are not reproduced as separate materials.
+Version 0.3 adds an optional Cycles renderer for actual refraction, random-walk
+SSS, area-light shadows and indirect illumination. The [Cycles guide](cycles.md)
+documents its separate physical-effect tests. These renders use the plugin's
+meshes, rather than rebuilding Molecular Nodes geometry in Blender. The viewport
+and native PyMOL ray renderer remain approximations. Arbitrary node graphs,
+HDR environments and EEVEE are not exposed. Blender's named Squishy and
+Transparent Outline assets are not imported as separate materials.
 The native backend has surface-only occlusion and ray-only outlines.
 
 The oxDNA loader's length conversion follows the

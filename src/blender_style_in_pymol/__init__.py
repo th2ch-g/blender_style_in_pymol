@@ -1,6 +1,6 @@
 """Molecular Nodes-inspired visualization without importing or starting PyMOL."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 def blender_load_oxdna(
@@ -38,6 +38,8 @@ def blender_style(
     quiet=0,
     _self=None,
     backend="auto",
+    renderer="auto",
+    samples=None,
 ):
     """
     DESCRIPTION
@@ -49,6 +51,8 @@ def blender_style(
         blender_style studio, representation=surface, color=chain
         blender_style ball-and-stick, selection=organic, name=ligand
         blender_style transparent, representation=surface, transparency=0.5
+        blender_style glass, representation=surface
+        blender_style subsurface, representation=surface, samples=128
         blender_style list
         blender_style refresh, name=all
         blender_style reset, name=all
@@ -64,14 +68,16 @@ def blender_style(
             a PyMOL color name, or #rrggbb.
         quality: auto, low, medium, high. Auto scales with atom/state count.
         backend: auto, mesh, or native. Auto prefers meshes for small static views.
+        renderer: auto, pymol, or cycles. Glass and SSS automatically use Cycles.
+        samples: Cycles samples per pixel, 1..4096 (default 64).
         name: managed view name; reuse replaces that view.
         material: studio, ambient-occlusion, matte, glossy, clay, flat,
-            outline, transparent. Overrides the style's material.
+            outline, transparent, glass, subsurface. Overrides the style's material.
         transparency: fraction 0..1; transparent defaults to 0.5.
         lighting: auto, keep, or a material name. Scene lighting is global.
         state: 0 copies all states; current or a positive integer copies one.
         memory_mb: conservative preparation estimate limit, in MiB.
-        params: dictionary or local JSON file with geometry parameters.
+        params: dictionary or local JSON file with geometry and optical parameters.
         filename, width, height: PNG or ray export path and pixel dimensions.
 
     NOTES
@@ -81,7 +87,10 @@ def blender_style(
         Use refresh after editing source coordinates or attributes.
         Mesh materials use approximate GGX lighting and geometric occlusion.
         Standard ray, cmd.ray and png ray=1 refresh camera-dependent shading.
-        This is not a Cycles renderer.
+        Cycles ray output requires Blender 4.0+ on PATH or BLENDER_EXECUTABLE.
+        The viewport approximates glass and SSS; Cycles computes refraction and
+        random-walk subsurface scattering. Visible native geometry is rejected
+        by Cycles export. Molecular Nodes is not required.
     """
     from .presets import (
         COLOR_THEMES,
@@ -127,7 +136,14 @@ def blender_style(
         from .export import image
 
         return image(
-            _self, filename, width, height, ray=operation == "ray", memory_mb=memory_mb
+            _self,
+            filename,
+            width,
+            height,
+            ray=operation == "ray",
+            memory_mb=memory_mb,
+            renderer=renderer,
+            samples=samples,
         )
     from .options import parse
 
@@ -146,6 +162,8 @@ def blender_style(
         memory_mb=memory_mb,
         params=params,
         backend=backend,
+        renderer=renderer,
+        samples=64 if samples is None else samples,
     )
     entry = manager.apply(options)
     if not int(quiet):

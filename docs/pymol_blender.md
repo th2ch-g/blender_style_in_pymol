@@ -1,8 +1,9 @@
 # Blender style command guide
 
 `blender_style` is an independent Python plugin for PyMOL 3.1. It uses smooth indexed meshes, an isolated OpenGL shader and native
-molecular/ray primitives. Blender and Molecular Nodes are
-needed only for the optional reference comparison, not for normal use.
+molecular/ray primitives. Blender 4.0+ is an optional dependency for Cycles
+refraction and subsurface scattering. Molecular Nodes is required only for
+the separate reference-comparison script.
 
 ## Registration
 
@@ -90,6 +91,8 @@ blender_style cartoon, backend=native, state=0
 | `flat` | Unlit color |
 | `outline` | Occlusion shading and dark grazing-angle Fresnel edges |
 | `transparent` | Roughness 0.22 and alpha transparency, defaulting to 0.5 |
+| `glass` | Roughness 0.08, transmission 1 and IOR 1.45; Cycles ray output |
+| `subsurface` | Roughness 0.45 and random-walk SSS with radius 1 Å; Cycles ray output |
 
 `transparency` accepts 0 (opaque) through 1 (invisible). With `lighting=auto`,
 meshes use linear-light diffuse/GGX shading, three approximate area lights and
@@ -102,8 +105,15 @@ within each mesh; intersecting objects can still show ordering artifacts.
 occlusion. An explicit lighting preset also selects native shading. The native
 backend uses PyMOL scene lights, specular highlights and surface occlusion;
 its outlines require ray output. These paths have a different appearance from
-the dedicated mesh shader. No path executes Cycles/EEVEE, refraction, subsurface
-scattering, HDR environments or path-traced soft shadows.
+the dedicated mesh shader. They approximate optical effects in the viewport.
+
+`glass` and `subsurface` automatically select Cycles for ray output and require
+Blender 4.0+ on `PATH`, discoverable as a macOS application, or configured with
+`BLENDER_EXECUTABLE`. `renderer=cycles` also path traces ordinary materials;
+`renderer=pymol` requests the native approximation. `samples=64` controls Cycles
+sampling and is stored with the view. See the [Cycles guide](cycles.md) for
+`ior`, `roughness`, `transmission`, `subsurface`, `subsurface_radius`, scene
+coverage and reproducible physical-effect checks. Molecular Nodes is not needed.
 
 PyMOL scene lights are global. The last `lighting=auto` view also applies a
 native lighting profile for other visible representations. A scene containing
@@ -308,6 +318,7 @@ to the mesh backend. `bond_split=1` selects the native backend.
 Width and thickness map to profile half-extents; they are not full
 cross-section dimensions. The correspondence was checked with rendered
 Molecular Nodes geometry, rather than inferred from the socket labels alone.
+The same `params` object accepts the [optical parameters](cycles.md#commands).
 Legacy presets have their own reference defaults: preset 1 uses a 1.4 Å
 protein tube; preset 2 uses 2.4/0.4/0.2 cartoon width, thickness and loop
 radius; non-polymer bonds in presets 1–2 have 0.25 Å radius. Preset 3 scales
@@ -330,7 +341,9 @@ The completed standard ray image remains available for `png`. Registration is
 idempotent; with no managed physical meshes these commands retain native behavior.
 
 GPU PNG needs a Qt/OpenGL session. Ray export works headlessly with native
-PyMOL ray primitives. The entire visible scene is exported.
+PyMOL ray primitives or optional Cycles. Native ray exports the entire visible
+scene; Cycles requires a complete managed mesh scene and reports unsupported
+visible objects. Glass and SSS select Cycles automatically.
 `unset opaque_background` requests a transparent background.
 The `blender_style png/ray` helpers check a separate image-buffer estimate checked against `memory_mb`; dimensions
 are limited to 8192 per axis and 32 million total pixels. A larger budget

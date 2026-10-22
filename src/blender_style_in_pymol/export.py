@@ -5,7 +5,9 @@ from pathlib import Path
 from .presets import integer, number
 
 
-def image(cmd, filename, width, height, ray=True, memory_mb=512):
+def image(
+    cmd, filename, width, height, ray=True, memory_mb=512, renderer="auto", samples=None
+):
     if not filename:
         raise ValueError("filename is required for PNG export")
     path = Path(filename).expanduser()
@@ -24,8 +26,8 @@ def image(cmd, filename, width, height, ray=True, memory_mb=512):
     if not path.parent.is_dir():
         raise ValueError("The output directory does not exist")
     if not ray:
-        renderer = cmd.get_renderer()
-        if not renderer or not renderer[0]:
+        device = cmd.get_renderer()
+        if not device or not device[0]:
             raise ValueError(
                 "GPU PNG export needs a PyMOL GUI; use blender_style ray in headless mode"
             )
@@ -47,10 +49,19 @@ def image(cmd, filename, width, height, ray=True, memory_mb=512):
             if errors:
                 raise RuntimeError(errors[0])
         else:
+            from .cycles import render as render_cycles
+            from .cycles import requested
             from .ray import scene
 
-            with scene(cmd, width, height, memory_mb=memory_mb):
-                cmd.png(str(path), width=width, height=height, ray=1, quiet=1)
+            if renderer not in ("auto", "pymol", "cycles"):
+                raise ValueError("renderer must be auto, pymol, or cycles")
+            if requested(cmd, renderer):
+                render_cycles(cmd, width, height, samples)
+                cmd.png(str(path), prior=1, quiet=1)
+            else:
+                with scene(cmd, width, height, memory_mb=memory_mb):
+                    cmd.ray(width, height, renderer=0, quiet=1)
+                    cmd.png(str(path), prior=1, quiet=1)
     finally:
         if sculpting:
             cmd.set("sculpting", 1, quiet=1)
@@ -91,8 +102,10 @@ def _transparent_gpu(cmd, path, width, height):
 
 
 def _mesh_only(cmd, cache):
+    from .cycles import enabled_objects
+
     callbacks = set(getattr(cmd._pymol.session, "blender_style_callbacks", {}).values())
-    for obj in cmd.get_names("objects", enabled_only=1):
+    for obj in enabled_objects(cmd):
         if obj in callbacks:
             continue
         kind = cmd.get_type(obj)

@@ -127,14 +127,14 @@ def refine(mesh, levels=1):
     return mesh
 
 
-def display_list(mesh, material, rotation=None):
+def display_list(mesh, material, rotation=None, params=None):
     from pymol.cgo import BEGIN, COLOR, END, NORMAL, TRIANGLE, TRIANGLES, VERTEX
 
     if rotation is not None:
         from .lighting import shade
 
         faces = mesh.faces[:, ::-1]
-        color = shade(mesh, material, rotation)
+        color = shade(mesh, material, rotation, params)
         values = np.empty((len(faces), 28), np.float32)
         values[:, 0] = TRIANGLE
         values[:, 1:10] = mesh.vertices[faces].reshape(-1, 9)
@@ -159,6 +159,7 @@ def display_list(mesh, material, rotation=None):
 
 def load(cmd, name, meshes, options):
     from .gpu import Drawing
+    from .presets import preview_transparency
 
     physical = options.lighting == "auto"
     registry = getattr(cmd._pymol, "_blender_drawings", None)
@@ -170,14 +171,19 @@ def load(cmd, name, meshes, options):
         for state, mesh in enumerate(meshes, 1):
             rotation = cmd.get_view()[:9] if physical else None
             cmd.load_cgo(
-                display_list(mesh, options.material, rotation),
+                display_list(mesh, options.material, rotation, options.params),
                 name,
                 state=state,
                 zoom=0,
                 quiet=1,
             )
             if physical:
-                drawing = Drawing(mesh, options.material, options.transparency)
+                drawing = Drawing(
+                    mesh,
+                    options.material,
+                    preview_transparency(options),
+                    options.params,
+                )
                 drawings.append(drawing)
                 cmd.load_callback(drawing, callback, state, 1, 0, 1, 0)
     except Exception:
@@ -187,7 +193,7 @@ def load(cmd, name, meshes, options):
     if physical:
         registry[name] = callback, drawings
         names[name] = callback
-    cmd.set("cgo_transparency", options.transparency, name, quiet=1)
+    cmd.set("cgo_transparency", preview_transparency(options), name, quiet=1)
     cmd.set(
         "cgo_lighting",
         int(

@@ -40,6 +40,11 @@ def show_dialog(cmd):
     color.setEditable(True)
     quality = combo("Quality", ("auto", "low", "medium", "high"))
     rendering = combo("Rendering", ("Automatic", "Smooth meshes", "Native PyMOL"))
+    renderer = combo("Ray renderer", ("Automatic", "PyMOL preview", "Blender Cycles"))
+    samples = QtWidgets.QSpinBox()
+    samples.setRange(1, 4096)
+    samples.setValue(64)
+    form.addRow("Cycles samples", samples)
     states = combo("States", ("All loaded states", "Current state"))
     transparency = QtWidgets.QDoubleSpinBox()
     transparency.setRange(0, 1)
@@ -48,6 +53,31 @@ def show_dialog(cmd):
     material.currentTextChanged.connect(
         lambda value: transparency.setValue(0.5 if value == "transparent" else 0)
     )
+    optics = QtWidgets.QGroupBox("Optical material")
+    optical_form = QtWidgets.QFormLayout(optics)
+    optical_widgets = {}
+    for key, label, low, high, initial in (
+        ("ior", "IOR", 1, 4, 1.45),
+        ("transmission", "Transmission", 0, 1, 0),
+        ("subsurface", "SSS weight", 0, 1, 0),
+        ("subsurface_radius", "SSS radius (Å)", 0.001, 100, 1),
+    ):
+        widget = QtWidgets.QDoubleSpinBox()
+        widget.setDecimals(3)
+        widget.setRange(low, high)
+        widget.setSingleStep(0.1)
+        widget.setValue(initial)
+        optical_form.addRow(label, widget)
+        optical_widgets[key] = widget
+    layout.addWidget(optics)
+
+    def optical_material(value):
+        optics.setVisible(value in ("glass", "subsurface"))
+        optical_widgets["transmission"].setValue(int(value == "glass"))
+        optical_widgets["subsurface"].setValue(int(value == "subsurface"))
+
+    material.currentTextChanged.connect(optical_material)
+    optical_material(material.currentText())
     keep = QtWidgets.QCheckBox("Keep existing scene lighting")
     layout.addWidget(keep)
     status = QtWidgets.QLabel("Smooth molecular shapes and soft studio materials.")
@@ -77,6 +107,9 @@ def show_dialog(cmd):
             color=color.currentText(),
             quality=quality.currentText(),
             backend=("auto", "mesh", "native")[rendering.currentIndex()],
+            renderer=("auto", "pymol", "cycles")[renderer.currentIndex()],
+            samples=samples.value(),
+            params={key: widget.value() for key, widget in optical_widgets.items()},
             name=name.text(),
             transparency=transparency.value(),
             lighting="keep" if keep.isChecked() else "auto",

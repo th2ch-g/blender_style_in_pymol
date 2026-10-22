@@ -287,13 +287,13 @@ def test_native_pick_maps_to_original(cmd):
 
 
 @pytest.mark.parametrize("material", MATERIALS)
-def test_real_ray_output(cmd, tmp_path, material):
+def test_pymol_ray_output(cmd, tmp_path, material):
     cmd.bg_color("white")
     cmd.orient("sample")
     cmd.zoom("sample", 5)
     style(cmd, material, representation="spheres")
     path = tmp_path / f"{material}.png"
-    style(cmd, "ray", filename=path, width=180, height=140)
+    style(cmd, "ray", filename=path, width=180, height=140, renderer="pymol")
     image = np.asarray(Image.open(path).convert("RGB"))
     assert image.shape == (140, 180, 3)
     assert np.count_nonzero(image.min(axis=2) < 230) > 50
