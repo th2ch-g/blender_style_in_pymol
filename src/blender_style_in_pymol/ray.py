@@ -8,6 +8,8 @@ from weakref import ref
 def install(cmd):
     if cmd.__dict__.get("_blender_ray_hooks"):
         return
+    if not all(name in getattr(cmd, "keyword", {}) for name in ("ray", "png")):
+        return
     original_ray, original_png = cmd.ray, cmd.png
     command = ref(cmd)
 
